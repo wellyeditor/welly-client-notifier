@@ -1607,11 +1607,19 @@ document.addEventListener('DOMContentLoaded', () => {
         const rt = (document.querySelector('input[name="remindType"]:checked') || {}).value || 'review';
         const isTextFirst = rt === 'textFirst';
         const isPub = rt === 'pub';
-        // 文字先上架不需要內容類型、回覆期限；需要首三篇 checkbox
-        document.getElementById('wrap_contentType').classList.toggle('hidden', isTextFirst || isPub);
+        const needCt = rt === 'review' || isPub;
+        // 只有審稿和上架需要內容類型
+        document.getElementById('wrap_contentType').classList.toggle('hidden', !needCt);
+        // 上架不會有架構
+        if (isPub) {
+          document.getElementById('ct_arch').checked = false;
+          document.getElementById('ct_arch').parentElement.style.display = 'none';
+        } else {
+          document.getElementById('ct_arch').parentElement.style.display = '';
+        }
         document.getElementById('wrap_replyDl').classList.toggle('hidden', isTextFirst);
         document.getElementById('wrap_firstThree').classList.toggle('hidden', !isTextFirst);
-        // 上架/文字先上架不需要「客戶處理」checkbox
+        // 上架/文字先上架不需要「客戶自行上架」checkbox
         document.getElementById('wrap_remindClientDo').classList.toggle('hidden', isTextFirst || isPub);
         if (isTextFirst || isPub) document.getElementById('ct_remindClientDo').checked = false;
         if (isTextFirst) document.getElementById('ct_firstThree').checked = true;
