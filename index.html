@@ -1625,11 +1625,20 @@ document.addEventListener('DOMContentLoaded', () => {
     if (saved) document.getElementById('f_sg').value = saved;
   });
 
-  // ── 截止日紀錄（有設截止日時自動送出）──
+  // ── 截止日紀錄（複製 Email 時才送出，5 分鐘內同組不重複）──
+  const _dlSentCache = {}; // key: "客戶名+截止日" → timestamp
   function logDeadline(scenarioId) {
-    if (!GAS_LOGGER_URL) return; // 尚未設定 API
+    if (!GAS_LOGGER_URL) return;
     const dl = document.getElementById('f_dl').value;
     if (!dl) return; // 沒有截止日就不記錄
+
+    const clientName = document.getElementById('f_cn').value.trim();
+    const dedupeKey = `${clientName}|${dl}`;
+    const now = Date.now();
+    if (_dlSentCache[dedupeKey] && (now - _dlSentCache[dedupeKey] < 5 * 60 * 1000)) {
+      return; // 5 分鐘內同客戶+同截止日，不重複送
+    }
+    _dlSentCache[dedupeKey] = now;
 
     const scenarioEl = document.getElementById('scenarioSelect');
     const scenarioLabel = scenarioEl.options[scenarioEl.selectedIndex].text;
@@ -1639,20 +1648,18 @@ document.addEventListener('DOMContentLoaded', () => {
       operator: operator,
       scenario: scenarioId,
       scenarioLabel: scenarioLabel,
-      clientName: document.getElementById('f_cn').value.trim(),
+      clientName: clientName,
       keywords: document.getElementById('f_kw').value.trim(),
       count: document.getElementById('f_count').value,
       deadline: dl,
     };
 
-    // 非同步送出，不 block 使用者操作
-    // no-cors 模式只允許 text/plain，GAS 仍可從 postData.contents 解析 JSON
     fetch(GAS_LOGGER_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain' },
       body: JSON.stringify(payload),
       mode: 'no-cors',
-    }).catch(() => {}); // 靜默失敗
+    }).catch(() => {});
   }
 
   // 生成
@@ -1689,8 +1696,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('outputSection').classList.remove('hidden');
     setTimeout(() => document.getElementById('outputSection').scrollIntoView({behavior:'smooth', block:'start'}), 80);
 
-    // 有截止日時記錄 + 發 Slack 提醒
-    logDeadline(id);
+    // logDeadline 改為複製 Email 時才觸發
   });
 
   // ── 複製 HTML 內容（用 contenteditable 暫存元素，不帶頁面背景色）──
@@ -1745,6 +1751,8 @@ document.addEventListener('DOMContentLoaded', () => {
     await copyRichText(cleanHtml, plain);
     this.classList.add('done'); const orig = this.textContent; this.textContent = '✅ 已複製';
     setTimeout(() => { this.classList.remove('done'); this.textContent = orig; }, 2000);
+    // 複製 Email 時才記錄截止日（代表真的要寄了）
+    logDeadline(document.getElementById('scenarioSelect').value);
   });
 
   // 複製主旨
