@@ -379,7 +379,8 @@
         <label style="font-size:13px;font-weight:600;color:#475569;white-space:nowrap">提醒類型</label>
         <div class="radio-pills">
           <label><input type="radio" name="remindType" value="review" checked>審稿</label>
-          <label><input type="radio" name="remindType" value="potLg">大改</label>
+          <label><input type="radio" name="remindType" value="potSm">小改（潛力）</label>
+          <label><input type="radio" name="remindType" value="potLg">大改（潛力）</label>
           <label><input type="radio" name="remindType" value="img">圖片</label>
           <label><input type="radio" name="remindType" value="pub">上架</label>
           <label><input type="radio" name="remindType" value="textFirst">文字先上架確認</label>
@@ -1104,8 +1105,10 @@ function gen(id) {
       let remindLine = '';
       if (rt === 'review') {
         remindLine = `想跟您確認我們 ${v.count} 篇${cd}審核的狀況都還好嗎？\n\n若確認沒問題後，我們內部會儘速${nextStep}，希望可以在${v.replyDl}收到您的回覆，若有任何問題或不懂的地方，都可以隨時提出來跟我討論唷！`;
+      } else if (rt === 'potSm') {
+        remindLine = `想跟您確認${kwFmt} ${v.count} 篇潛力關鍵字小幅度調整（Meta 標題／描述）的部分，審核狀況都還好嗎？\n\n若確認沒問題後，我們這邊會儘速進行調整上架，希望可以在${v.replyDl}收到您的回覆，若有任何問題都可以隨時提出來跟我討論唷！`;
       } else if (rt === 'potLg') {
-        remindLine = `想跟您確認${kwFmt} ${v.count} 篇${cd}大幅度調整的內容，審核狀況都還好嗎？\n\n若確認沒問題後，我們這邊會儘速進行後續調整，希望可以在${v.replyDl}收到您的回覆，若有任何問題都可以隨時提出來跟我討論唷！`;
+        remindLine = `想跟您確認${kwFmt} ${v.count} 篇潛力關鍵字大幅度調整的內容，審核狀況都還好嗎？\n\n若確認沒問題後，我們這邊會儘速進行後續調整與上架，希望可以在${v.replyDl}收到您的回覆，若有任何問題都可以隨時提出來跟我討論唷！`;
       } else if (rt === 'img') {
         remindLine = `想跟您確認${kwFmt} ${v.count} 篇 SEO 圖片的審核狀況都還好嗎？\n\n若確認沒問題後，我們內部會儘速安排上架，希望可以在${v.replyDl}收到您的回覆，感謝！`;
       } else if (rt === 'pub') {
