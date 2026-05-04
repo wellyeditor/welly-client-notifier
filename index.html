@@ -386,6 +386,9 @@
           <label><input type="radio" name="remindType" value="textFirst">文字先上架確認</label>
         </div>
       </div>
+      <div style="margin-top:8px;padding-left:2px" id="wrap_remindClientDo">
+        <label style="font-size:13px;cursor:pointer"><input type="checkbox" id="ct_remindClientDo"> 客戶自行處理（非我方處理）</label>
+      </div>
     </div>
     <div class="hidden" id="wrap_potLgType" style="margin-bottom:14px">
       <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
@@ -888,6 +891,7 @@ function vals() {
     potSmType: (document.querySelector('input[name="potSmType"]:checked') || {}).value || 'client',
     potLgType: (document.querySelector('input[name="potLgType"]:checked') || {}).value || 'after',
     remindType: (document.querySelector('input[name="remindType"]:checked') || {}).value || 'review',
+    remindClientDo: document.getElementById('ct_remindClientDo').checked,
     docName: document.getElementById('f_docName').value.trim() || '【文檔名稱】',
     docLink: document.getElementById('f_docLink').value.trim(),
     replyDl: document.getElementById('f_replyDl').value.trim() || '今天/明天下班前',
@@ -1102,22 +1106,35 @@ function gen(id) {
                      : v.hasArch ? '著手安排文章撰寫'
                      : '安排上架文章';
       const rt = v.remindType;
+      const clientDo = v.remindClientDo;
       let remindLine = '';
       if (rt === 'review') {
-        remindLine = `想跟您確認我們 ${v.count} 篇${cd}審核的狀況都還好嗎？\n\n若確認沒問題後，我們內部會儘速${nextStep}，希望可以在${v.replyDl}收到您的回覆，若有任何問題或不懂的地方，都可以隨時提出來跟我討論唷！`;
+        const after = clientDo
+          ? `若確認沒問題後，再麻煩貴司安排後續處理`
+          : `若確認沒問題後，我們內部會儘速${nextStep}`;
+        remindLine = `想跟您確認${kwFmt} ${v.count} 篇${cd}審核的狀況都還好嗎？\n\n${after}，希望可以在${v.replyDl}收到您的回覆，若有任何問題或不懂的地方，都可以隨時提出來跟我討論唷！`;
       } else if (rt === 'potSm') {
-        remindLine = `想跟您確認${kwFmt} ${v.count} 篇潛力關鍵字小幅度調整（Meta 標題／描述）的部分，審核狀況都還好嗎？\n\n若確認沒問題後，我們這邊會儘速進行調整上架，希望可以在${v.replyDl}收到您的回覆，若有任何問題都可以隨時提出來跟我討論唷！`;
+        const after = clientDo
+          ? `若確認沒問題後，再麻煩貴司安排調整上架`
+          : `若確認沒問題後，我們這邊會儘速進行調整上架`;
+        remindLine = `想跟您確認${kwFmt} ${v.count} 篇潛力關鍵字調整（Meta 標題／描述）的部分，審核狀況都還好嗎？\n\n${after}，希望可以在${v.replyDl}收到您的回覆，若有任何問題都可以隨時提出來跟我討論唷！`;
       } else if (rt === 'potLg') {
-        remindLine = `想跟您確認${kwFmt} ${v.count} 篇潛力關鍵字大幅度調整的內容，審核狀況都還好嗎？\n\n若確認沒問題後，我們這邊會儘速進行後續調整與上架，希望可以在${v.replyDl}收到您的回覆，若有任何問題都可以隨時提出來跟我討論唷！`;
+        const after = clientDo
+          ? `若確認沒問題後，再麻煩貴司安排後續調整與上架`
+          : `若確認沒問題後，我們這邊會儘速進行後續調整與上架`;
+        remindLine = `想跟您確認${kwFmt} ${v.count} 篇潛力關鍵字調整的內容，審核狀況都還好嗎？\n\n${after}，希望可以在${v.replyDl}收到您的回覆，若有任何問題都可以隨時提出來跟我討論唷！`;
       } else if (rt === 'img') {
-        remindLine = `想跟您確認${kwFmt} ${v.count} 篇 SEO 圖片的審核狀況都還好嗎？\n\n若確認沒問題後，我們內部會儘速安排上架，希望可以在${v.replyDl}收到您的回覆，感謝！`;
+        const after = clientDo
+          ? `若確認沒問題後，再麻煩貴司安排上架`
+          : `若確認沒問題後，我們內部會儘速安排上架`;
+        remindLine = `想跟您確認${kwFmt} ${v.count} 篇 SEO 圖片的審核狀況都還好嗎？\n\n${after}，希望可以在${v.replyDl}收到您的回覆，感謝！`;
       } else if (rt === 'pub') {
         remindLine = `想跟您確認${kwFmt} ${v.count} 篇文章的上架進度都還好嗎？\n\n上架完成後再麻煩提供文章上架連結，以利我們進行後續的數據追蹤，希望可以在${v.replyDl}收到您的回覆，感謝！`;
       } else if (rt === 'textFirst') {
         if (v.isFirstThree) {
-          remindLine = `若是 ${v.count} 篇文章確認完畢後，我們會建議文字可以先上架，因為 Google 需要時間爬取內容與建立索引，索引建立後才會進到排名階段，這段時間因為沒有搜尋量，民眾搜尋點擊進來的機率較低，圖片後補對 SEO 影響也不大，那麼我們內部是否可以先安排文字部分的上架呢？\n\n這裡也會同步先放上相關合法示意圖作為暫時首圖，待後續配圖製作好會再通知您進行審核唷！`;
+          remindLine = `若是${kwFmt} ${v.count} 篇文章確認完畢後，我們會建議文字可以先上架，因為 Google 需要時間爬取內容與建立索引，索引建立後才會進到排名階段，這段時間因為沒有搜尋量，民眾搜尋點擊進來的機率較低，圖片後補對 SEO 影響也不大，那麼我們內部是否可以先安排文字部分的上架呢���\n\n這裡也會同步先放上相關合法示意圖作為暫時首圖，待後續配圖製作好會再通知您進行審核唷！`;
         } else {
-          remindLine = `好的，這邊已確認文章內容沒問題！我們這邊會先安排文字部分上架唷，後續圖片製作好也會再寄送給您審核，感謝！`;
+          remindLine = `好的，${kwFmt} ${v.count} 篇文章內容已確認沒問題！我們這邊會先安排文字部分上架唷，後續圖片製作好也會再寄送給您審核，感謝！`;
         }
       }
       return { email: null, line: remindLine };
@@ -1589,10 +1606,14 @@ document.addEventListener('DOMContentLoaded', () => {
       const applyRemindType = () => {
         const rt = (document.querySelector('input[name="remindType"]:checked') || {}).value || 'review';
         const isTextFirst = rt === 'textFirst';
+        const isPub = rt === 'pub';
         // 文字先上架不需要內容類型、回覆期限；需要首三篇 checkbox
-        document.getElementById('wrap_contentType').classList.toggle('hidden', isTextFirst);
+        document.getElementById('wrap_contentType').classList.toggle('hidden', isTextFirst || isPub);
         document.getElementById('wrap_replyDl').classList.toggle('hidden', isTextFirst);
         document.getElementById('wrap_firstThree').classList.toggle('hidden', !isTextFirst);
+        // 上架/文字先上架不需要「客戶處理」checkbox
+        document.getElementById('wrap_remindClientDo').classList.toggle('hidden', isTextFirst || isPub);
+        if (isTextFirst || isPub) document.getElementById('ct_remindClientDo').checked = false;
         if (isTextFirst) document.getElementById('ct_firstThree').checked = true;
       };
       document.querySelectorAll('input[name="remindType"]').forEach(r => { r.onchange = applyRemindType; });
