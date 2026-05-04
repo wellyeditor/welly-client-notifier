@@ -335,9 +335,8 @@
       <optgroup label="🔄 回稿修改">
         <option value="combo_rev">回稿修改</option>
       </optgroup>
-      <optgroup label="💬 確認提醒">
-        <option value="review_remind">客戶審核提醒</option>
-        <option value="text_first">文字先上架、圖片後補確認</option>
+      <optgroup label="💬 客戶提醒">
+        <option value="client_remind">客戶提醒（催覆）</option>
       </optgroup>
       <optgroup label="🖼️ 圖片類">
         <option value="img_review">圖片審核</option>
@@ -372,6 +371,18 @@
           <label><input type="radio" name="potSmType" value="before">先通知後改</label>
           <label><input type="radio" name="potSmType" value="after">先改後通知</label>
           <label><input type="radio" name="potSmType" value="noemail">無需寄信</label>
+        </div>
+      </div>
+    </div>
+    <div class="hidden" id="wrap_remindType" style="margin-bottom:14px">
+      <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+        <label style="font-size:13px;font-weight:600;color:#475569;white-space:nowrap">提醒類型</label>
+        <div class="radio-pills">
+          <label><input type="radio" name="remindType" value="review" checked>審稿</label>
+          <label><input type="radio" name="remindType" value="potLg">大改</label>
+          <label><input type="radio" name="remindType" value="img">圖片</label>
+          <label><input type="radio" name="remindType" value="pub">上架</label>
+          <label><input type="radio" name="remindType" value="textFirst">文字先上架確認</label>
         </div>
       </div>
     </div>
@@ -616,9 +627,8 @@ const SC = {
   // ctDefaults: 預設勾選狀態
   combo_send:          { email:true,  line:true,  links:true,  ver:false, meta:false, doc:false, noDl:false, noCount:false, contentType:true,  ctAvail:[1,1,1,1], ctDefaults:[0,0,0,0], firstSend:true },
   combo_rev:           { email:true,  line:true,  links:true,  ver:true,  meta:false, doc:false, noDl:false, noCount:false, contentType:true,  ctAvail:[1,1,1,1], ctDefaults:[0,1,0,0], canNoEmail:true },
-  review_remind:       { email:false, line:true,  links:false, ver:false, meta:false, doc:false, noDl:true,  noCount:false, replyDl:true, contentType:true,  ctAvail:[1,1,1,1], ctDefaults:[0,1,0,0] },
+  client_remind:       { email:false, line:true,  links:false, ver:false, meta:false, doc:false, noDl:true,  noCount:false, replyDl:true, contentType:true,  ctAvail:[1,1,1,1], ctDefaults:[0,1,0,0], remindType:true, firstThree:true },
   img_review:          { email:true,  line:true,  links:true,  ver:false, meta:false, doc:false, noDl:false, noCount:false },
-  text_first:          { email:false, line:true,  links:false, ver:false, meta:false, doc:false, noDl:true,  noCount:false, noKw:true, firstThree:true },
   img_during_review:   { email:false, line:true,  links:false, ver:false, meta:false, doc:false, noDl:true,  noCount:false },
   client_pub:          { email:true,  line:true,  links:true,  ver:false, meta:false, doc:false, noDl:false, noCount:true,  contentType:true,  ctAvail:[0,1,1,1], ctDefaults:[0,1,0,0], imgFolder:true },
   rev_pub:             { email:true,  line:true,  links:true,  ver:true,  meta:false, doc:false, noDl:false, noCount:false, contentType:true,  ctAvail:[0,1,1,1], ctDefaults:[0,1,0,0], pubOptions:true },
@@ -876,6 +886,7 @@ function vals() {
     })(),
     potSmType: (document.querySelector('input[name="potSmType"]:checked') || {}).value || 'client',
     potLgType: (document.querySelector('input[name="potLgType"]:checked') || {}).value || 'after',
+    remindType: (document.querySelector('input[name="remindType"]:checked') || {}).value || 'review',
     docName: document.getElementById('f_docName').value.trim() || '【文檔名稱】',
     docLink: document.getElementById('f_docLink').value.trim(),
     replyDl: document.getElementById('f_replyDl').value.trim() || '今天/明天下班前',
@@ -1084,29 +1095,36 @@ function gen(id) {
         line: v.hasArch ? archRevLine : articleRevLine,
       };
     }
-    case 'review_remind': {
+    case 'client_remind': {
       const hasOther = v.hasArticle || v.hasProduct || v.hasOptimize;
       const nextStep = v.hasArch && hasOther ? '著手安排上架或撰寫'
                      : v.hasArch ? '著手安排文章撰寫'
                      : '安排上架文章';
-      return {
-        email: null,
-        line: `想跟您確認我們 ${v.count} 篇${cd}審核的狀況都還好嗎？\n\n若確認沒問題後，我們內部會儘速${nextStep}，希望可以在${v.replyDl}收到您的回覆，若有任何問題或不懂的地方，都可以隨時提出來跟我討論唷！`,
-      };
+      const rt = v.remindType;
+      let remindLine = '';
+      if (rt === 'review') {
+        remindLine = `想跟您確認我們 ${v.count} 篇${cd}審核的狀況都還好嗎？\n\n若確認沒問題後，我們內部會儘速${nextStep}，希望可以在${v.replyDl}收到您的回覆，若有任何問題或不懂的地方，都可以隨時提出來跟我討論唷！`;
+      } else if (rt === 'potLg') {
+        remindLine = `想跟您確認${kwFmt} ${v.count} 篇${cd}大幅度調整的內容，審核狀況都還好嗎？\n\n若確認沒問題後，我們這邊會儘速進行後續調整，希望可以在${v.replyDl}收到您的回覆，若有任何問題都可以隨時提出來跟我討論唷！`;
+      } else if (rt === 'img') {
+        remindLine = `想跟您確認${kwFmt} ${v.count} 篇 SEO 圖片的審核狀況都還好嗎？\n\n若確認沒問題後，我們內部會儘速安排上架，希望可以在${v.replyDl}收到您的回覆，感謝！`;
+      } else if (rt === 'pub') {
+        remindLine = `想跟您確認${kwFmt} ${v.count} 篇文章的上架進度都還好嗎？\n\n上架完成後再麻煩提供文章上架連結，以利我們進行後續的數據追蹤，希望可以在${v.replyDl}收到您的回覆，感謝！`;
+      } else if (rt === 'textFirst') {
+        if (v.isFirstThree) {
+          remindLine = `若是 ${v.count} 篇文章確認完畢後，我們會建議文字可以先上架，因為 Google 需要時間爬取內容與建立索引，索引建立後才會進到排名階段，這段時間因為沒有搜尋量，民眾搜尋點擊進來的機率較低，圖片後補對 SEO 影響也不大，那麼我們內部是否可以先安排文字部分的上架呢？\n\n這裡也會同步先放上相關合法示意圖作為暫時首圖，待後續配圖製作好會再通知您進行審核唷！`;
+        } else {
+          remindLine = `好的，這邊已確認文章內容沒問題！我們這邊會先安排文字部分上架唷，後續圖片製作好也會再寄送給您審核，感謝！`;
+        }
+      }
+      return { email: null, line: remindLine };
     }
     case 'img_review': return {
       subject: `【${v.cn}】SEO 圖片第 1 版確認 - Welly`,
       email: `${dearHi}\n\n${kwFmt} ${v.count} 篇 SEO 圖片已經完成，連結如下，再麻煩您抽空進行確認！\n\n${lb}\n\n確認完畢後煩請幫我勾選「文件檔」最下方新增的提醒文字，或回覆此信件 or LINE，完成狀態勾選後通知我們，以便我們開始著手為貴公司調整或上架。\n\n希望能於 ${v.dl} 前收到您的回覆，感謝！\n\nPS. 我們的圖片素材取自 Freepik、Flaticon，公司也有購買 premium 付費方案，以上皆屬於合法來源，可以作為商業用途，請您放心。\n\n${v.sg}`,
       line: `剛才有寄送${kwFmt} ${v.count} 篇 SEO「圖片」到您的信箱，完整內容與附件請參考信件，希望能在 ${v.dl} 前收到您的回覆，感謝！`,
     };
-    case 'text_first': {
-      const firstThreeLine = `若是 ${v.count} 篇文章確認完畢後，我們會建議文字可以先上架，因為 Google 需要時間爬取內容與建立索引，索引建立後才會進到排名階段，這段時間因為沒有搜尋量，民眾搜尋點擊進來的機率較低，圖片後補對 SEO 影響也不大，那麼我們內部是否可以先安排文字部分的上架呢？\n\n這裡也會同步先放上相關合法示意圖作為暫時首圖，待後續配圖製作好會再通知您進行審核唷！`;
-      const nonFirstLine = `好的，這邊已確認文章內容沒問題！我們這邊會先安排文字部分上架唷，後續圖片製作好也會再寄送給您審核，感謝！`;
-      return {
-        email: null,
-        line: v.isFirstThree ? firstThreeLine : nonFirstLine,
-      };
-    }
+    // text_first 已併入 client_remind（remindType='textFirst'）
     case 'img_during_review': return {
       email: null,
       line: `${kwFmt} ${v.count} 篇文章 SEO 圖片已完成、置入文檔中，再麻煩客戶審核文字時一併進行確認，感謝您！`,
@@ -1559,6 +1577,23 @@ document.addEventListener('DOMContentLoaded', () => {
       };
       document.querySelectorAll('input[name="potLgType"]').forEach(r => { r.onchange = applyPotLgType; });
       applyPotLgType();
+    }
+
+    // 客戶提醒類型 radio
+    document.getElementById('wrap_remindType').classList.toggle('hidden', !sc.remindType);
+    if (sc.remindType) {
+      document.querySelector('input[name="remindType"][value="review"]').checked = true;
+      const applyRemindType = () => {
+        const rt = (document.querySelector('input[name="remindType"]:checked') || {}).value || 'review';
+        const isTextFirst = rt === 'textFirst';
+        // 文字先上架不需要內容類型、回覆期限；需要首三篇 checkbox
+        document.getElementById('wrap_contentType').classList.toggle('hidden', isTextFirst);
+        document.getElementById('wrap_replyDl').classList.toggle('hidden', isTextFirst);
+        document.getElementById('wrap_firstThree').classList.toggle('hidden', !isTextFirst);
+        if (isTextFirst) document.getElementById('ct_firstThree').checked = true;
+      };
+      document.querySelectorAll('input[name="remindType"]').forEach(r => { r.onchange = applyRemindType; });
+      applyRemindType();
     }
 
     // 潛力關鍵字選項 checkbox（標題/前言/更新日期）
