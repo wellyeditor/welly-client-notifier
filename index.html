@@ -1,0 +1,1962 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>客戶通知生成器 · Welly</title>
+<style>
+  :root {
+    --ac: #6366f1; --ac-dark: #4f46e5; --ac-bg: #eef2ff; --ac-hover: #f1f0ff;
+    --ac-grad: #8b5cf6; --ac-shadow: rgba(99,102,241,.3); --ac-ring: #c7c3f9;
+    --ac-subj: #3730a3;
+    --page-bg: #f0f1f6; --card-border: transparent; --card-shadow: 0 1px 5px rgba(0,0,0,.07);
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, "PingFang TC", "Noto Sans TC", sans-serif; background: var(--page-bg); min-height: 100vh; color: #1e1e2e; transition: background .3s; }
+  input, select, textarea, button { font-family: inherit; }
+
+  .wrap { max-width: 740px; margin: 0 auto; padding: 24px 16px 60px; }
+
+  /* 頁首 */
+  .header { margin-bottom: 20px; }
+  .header h1 { font-size: 21px; font-weight: 800; letter-spacing: -0.3px; color: var(--ac-dark); transition: color .3s; }
+  .header p  { font-size: 13px; color: #888; margin-top: 3px; }
+
+  /* 卡片 */
+  .card {
+    background: #fff;
+    border-radius: 14px;
+    padding: 18px;
+    box-shadow: var(--card-shadow);
+    margin-bottom: 14px;
+    border: 1.5px solid var(--card-border);
+    transition: border-color .3s, box-shadow .3s;
+  }
+
+  /* Step label */
+  .step-label {
+    display: flex; align-items: center; gap: 8px; margin-bottom: 14px;
+  }
+  .step-num {
+    width: 22px; height: 22px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--ac), var(--ac-grad));
+    color: #fff; font-size: 12px; font-weight: 800;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    transition: background .3s;
+  }
+  .step-title { font-size: 14px; font-weight: 700; color: var(--ac-dark); transition: color .3s; }
+
+  /* Select */
+  .scenario-select {
+    width: 100%; padding: 10px 12px; font-size: 14px;
+    border: 1.5px solid #e2e4ec; border-radius: 10px;
+    background: #fff; outline: none; cursor: pointer;
+    transition: border .15s;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23aaa' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    padding-right: 36px;
+  }
+  .scenario-select:focus { border-color: var(--ac); }
+
+  /* Badges */
+  .badges { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+  .badge {
+    border-radius: 20px; padding: 2px 10px;
+    font-size: 12px; font-weight: 600;
+    border: 1px solid;
+  }
+
+  /* Grid */
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+  /* Field */
+  .field { display: flex; flex-direction: column; gap: 4px; }
+  .field.span2 { grid-column: 1 / -1; }
+  .field label { font-size: 12px; font-weight: 700; color: #555; }
+  .field input, .field select {
+    padding: 8px 10px; font-size: 13px;
+    border: 1.5px solid #e2e4ec; border-radius: 9px; outline: none;
+    transition: border .15s; background: #fff;
+    width: 100%;
+  }
+  .field input:focus, .field select:focus { border-color: var(--ac); }
+  input[type="date"] { cursor: pointer; color: #1e1e2e; }
+  input[type="date"]::-webkit-calendar-picker-indicator { cursor: pointer; opacity: .6; }
+
+  /* 連結區 */
+  .link-section { margin-top: 14px; }
+  .section-title { font-size: 12px; font-weight: 700; color: var(--ac-dark); margin-bottom: 8px; transition: color .3s; }
+  .link-row { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
+  .link-label { font-size: 12px; color: #bbb; min-width: 42px; flex-shrink: 0; }
+  .link-url-input {
+    flex: 1; padding: 7px 10px; font-size: 13px;
+    border: 1.5px solid #e2e4ec; border-radius: 8px; outline: none;
+    transition: border .15s;
+  }
+  .link-url-input:focus { border-color: var(--ac); }
+  .link-status {
+    width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0;
+    background: #e2e4ec; border: 2px solid #d1d5e0;
+    transition: all .3s; cursor: default;
+  }
+  .link-status.ok      { background: #22c55e; border-color: #16a34a; }
+  .link-status.warn    { background: #fbbf24; border-color: #d97706; }
+  .link-status.fail    { background: #ef4444; border-color: #dc2626; }
+  .link-status.checking { background: #fbbf24; border-color: #d97706; animation: pulse .8s ease-in-out infinite alternate; }
+  @keyframes pulse { to { opacity: .5; } }
+
+  /* Meta 區 */
+  .meta-section { margin-top: 14px; }
+
+  /* 生成按鈕 */
+  .gen-btn {
+    margin-top: 18px; width: 100%; padding: 13px 0;
+    font-size: 15px; font-weight: 800;
+    background: linear-gradient(135deg, var(--ac), var(--ac-grad));
+    color: #fff; border: none; border-radius: 12px; cursor: pointer;
+    box-shadow: 0 4px 14px var(--ac-shadow);
+    letter-spacing: .5px;
+    transition: opacity .15s, transform .1s;
+  }
+  .gen-btn:hover { opacity: .92; transform: translateY(-1px); }
+  .gen-btn:active { transform: translateY(0); }
+
+  /* 輸出區 */
+  .output-section { margin-top: 4px; }
+
+  /* 複製按鈕 */
+  .copy-btn {
+    padding: 6px 14px; font-size: 13px; font-weight: 700;
+    border: none; border-radius: 8px; cursor: pointer;
+    transition: all .15s;
+  }
+  .copy-btn.email { background: var(--ac-bg); color: var(--ac-dark); }
+  .copy-btn.email.done { background: #dcfce7; color: #166534; }
+  .copy-btn.line  { background: #f0fdf4; color: #16a34a; }
+  .copy-btn.line.done  { background: #dcfce7; color: #166534; }
+  .copy-mini {
+    background: none; border: none; font-size: 11px; font-weight: 600;
+    cursor: pointer; padding: 2px 4px; transition: color .15s;
+  }
+  .copy-mini.email { color: var(--ac); }
+  .copy-mini.done  { color: #16a34a; }
+
+  /* 輸出內容 */
+  .out-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+  .out-title  { font-size: 15px; font-weight: 800; color: var(--ac-dark); }
+  .subj-row   { margin-bottom: 10px; }
+  .subj-top   { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+  .subj-label { font-size: 11px; font-weight: 700; color: #888; text-transform: uppercase; letter-spacing: .3px; }
+  .subj-box   { background: var(--ac-bg); border-radius: 8px; padding: 9px 12px; font-size: 13px; font-weight: 600; color: var(--ac-subj); line-height: 1.5; }
+  .body-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+  .body-label { font-size: 11px; font-weight: 700; color: #888; text-transform: uppercase; letter-spacing: .3px; }
+  .body-pre {
+    border-radius: 10px; padding: 14px; font-size: 13px;
+    line-height: 1.85; white-space: pre-wrap; margin: 0; font-family: inherit;
+  }
+  .body-pre.email { background: #f8f9fc; color: #333; }
+  .body-pre.line  { background: #f0fdf4; color: #166534; }
+
+  /* 日期快捷 */
+  .date-shortcuts { display: flex; gap: 6px; margin-top: 5px; }
+  .date-shortcut-btn {
+    padding: 3px 10px; font-size: 11.5px; font-weight: 700;
+    border: 1.5px solid var(--ac-ring); border-radius: 6px;
+    background: var(--ac-bg); color: var(--ac-dark); cursor: pointer;
+    transition: all .15s;
+  }
+  .date-shortcut-btn:hover { background: var(--ac); color: #fff; border-color: var(--ac); }
+
+  /* Checkbox 群組 */
+  .checkbox-group { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
+  .checkbox-group label {
+    display: flex; align-items: center; gap: 4px;
+    padding: 4px 12px; font-size: 12px; font-weight: 600;
+    border: 1.5px solid #e2e4ec; border-radius: 8px; cursor: pointer;
+    transition: all .15s; user-select: none;
+  }
+  .checkbox-group label:has(input:checked) {
+    background: var(--ac-bg); border-color: var(--ac); color: var(--ac-dark);
+  }
+  .checkbox-group input[type="checkbox"] { width: 14px; height: 14px; accent-color: var(--ac); }
+
+  /* Radio chip 群組（通知類型等） */
+  .radio-pills { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
+  .radio-pills label {
+    display: flex; align-items: center; gap: 0;
+    padding: 6px 14px; font-size: 12.5px; font-weight: 600;
+    cursor: pointer; transition: all .15s; user-select: none;
+    border: 1.5px solid #e2e4ec; border-radius: 20px; color: #64748b; background: #fff;
+  }
+  .radio-pills label:hover { background: var(--ac-hover); color: var(--ac-dark); border-color: var(--ac-ring); }
+  .radio-pills label:has(input:checked) {
+    background: var(--ac-bg); border-color: var(--ac); color: var(--ac-dark);
+  }
+  .radio-pills input[type="radio"] { display: none; }
+
+  /* 設定按鈕 */
+  .settings-toggle {
+    width: 32px; height: 32px; border-radius: 50%; border: 1.5px solid #e2e4ec;
+    background: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center;
+    transition: all .2s;
+  }
+  .settings-toggle:hover { border-color: var(--ac); background: var(--ac-bg); }
+  .settings-toggle svg { width: 16px; height: 16px; color: #888; }
+
+  /* 設定面板 overlay */
+  .settings-overlay {
+    display: none; position: fixed; inset: 0; z-index: 200;
+    background: rgba(0,0,0,.3); backdrop-filter: blur(2px);
+    justify-content: center; align-items: flex-start; padding: 60px 16px;
+  }
+  .settings-overlay.open { display: flex; }
+  .settings-card {
+    background: #fff; border-radius: 18px; padding: 28px 32px 24px;
+    box-shadow: 0 12px 40px rgba(0,0,0,.15); border: 1px solid #e2e4ec;
+    max-width: 420px; width: 100%; position: relative;
+    animation: settingsIn .2s ease-out;
+  }
+  @keyframes settingsIn { from { opacity:0; transform: translateY(-12px); } to { opacity:1; transform: translateY(0); } }
+  .settings-close {
+    position: absolute; top: 14px; right: 16px;
+    width: 28px; height: 28px; border-radius: 50%; border: none;
+    background: #f1f5f9; cursor: pointer; display: flex; align-items: center; justify-content: center;
+    font-size: 16px; color: #64748b; transition: all .15s;
+  }
+  .settings-close:hover { background: #e2e8f0; color: #334155; }
+  .settings-title { font-size: 17px; font-weight: 700; color: var(--ac-dark); margin-bottom: 20px; }
+  .settings-section { margin-bottom: 22px; }
+  .settings-section-title { font-size: 12px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+  .settings-input {
+    width: 100%; padding: 10px 14px; border: 1.5px solid #e2e4ec; border-radius: 10px;
+    font-size: 14px; outline: none; transition: border .15s; box-sizing: border-box;
+  }
+  .settings-input:focus { border-color: var(--ac); }
+  .settings-hint { font-size: 11.5px; color: #94a3b8; margin-top: 4px; }
+
+  /* 主題 grid（設定面板內） */
+  .theme-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+  .theme-swatch {
+    width: 36px; height: 36px; border-radius: 10px; cursor: pointer;
+    border: 2.5px solid transparent; transition: all .15s;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .theme-swatch:hover { transform: scale(1.1); }
+  .theme-swatch.active { border-color: var(--ac); box-shadow: 0 0 0 2px var(--ac-bg); }
+  .theme-swatch-check { display: none; color: #fff; font-size: 14px; font-weight: 700; }
+  .theme-swatch.active .theme-swatch-check { display: block; }
+  .theme-name { text-align: center; font-size: 12px; color: var(--ac-dark); font-weight: 600; margin-top: 10px; transition: color .3s; }
+
+  /* 回饋按鈕 */
+  .feedback-btn {
+    display: flex; align-items: center; gap: 8px;
+    width: 100%; padding: 12px 16px; border-radius: 12px;
+    border: 1.5px solid #e2e4ec; background: #fff; cursor: pointer;
+    font-size: 14px; font-weight: 600; color: #475569; transition: all .15s;
+    text-decoration: none;
+  }
+  .feedback-btn:hover { border-color: var(--ac); background: var(--ac-bg); color: var(--ac-dark); }
+
+  /* 連結列的內容類型選擇 */
+  .link-type-select {
+    padding: 4px 6px; font-size: 11.5px; font-weight: 600;
+    border: 1.5px solid #e2e4ec; border-radius: 6px;
+    background: #f8f9fc; color: #555; outline: none;
+    cursor: pointer; flex-shrink: 0; min-width: 72px;
+    transition: border .15s;
+  }
+  .link-type-select:focus { border-color: var(--ac); }
+
+  /* 隱藏 */
+  .hidden { display: none !important; }
+
+  /* Divider */
+  .divider { height: 1px; background: var(--ac-ring); opacity: .35; margin: 12px 0; transition: background .3s; }
+
+  @media (max-width: 480px) {
+    .grid { grid-template-columns: 1fr; }
+    .field.span2 { grid-column: 1; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- 頁首 -->
+  <div class="header" style="display:flex;align-items:flex-start;justify-content:space-between">
+    <div>
+      <h1>✉️ 客戶通知生成器</h1>
+      <p>選情境 → 填資料 → 一鍵生成 Email ＋ LINE</p>
+    </div>
+    <button class="settings-toggle" id="settingsToggle" title="設定">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+    </button>
+  </div>
+
+  <!-- 設定面板 -->
+  <div class="settings-overlay" id="settingsOverlay">
+    <div class="settings-card">
+      <button class="settings-close" id="settingsClose">✕</button>
+      <div class="settings-title">設定</div>
+
+      <div class="settings-section">
+        <div class="settings-section-title">我的署名</div>
+        <input type="text" class="settings-input" id="defaultName" placeholder="輸入你的名字，會自動帶入署名欄位" maxlength="20" />
+      </div>
+
+      <div class="settings-section">
+        <div class="settings-section-title">主題配色</div>
+        <div class="theme-grid" id="themeGrid"></div>
+        <div class="theme-name" id="themeName"></div>
+      </div>
+
+      <div class="settings-section" style="margin-bottom:0">
+        <div class="settings-section-title">回饋與許願</div>
+        <a href="https://docs.google.com/spreadsheets/d/1nmBZCySqfuzGChzQN_-8RAVRcoYUxzbF/edit?gid=49551477#gid=49551477" target="_blank" rel="noopener" class="feedback-btn">
+          📝 回報錯誤 / 許願新功能
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 1 -->
+  <div class="card">
+    <div class="step-label">
+      <div class="step-num">1</div>
+      <span class="step-title">選擇情境</span>
+    </div>
+    <select class="scenario-select" id="scenarioSelect">
+      <option value="">-- 請選擇情境 --</option>
+      <optgroup label="📨 審稿寄送">
+        <option value="combo_send">寄送審稿（架構／文章／產品頁可複選）</option>
+      </optgroup>
+      <optgroup label="🔄 回稿修改">
+        <option value="combo_rev">回稿修改</option>
+      </optgroup>
+      <optgroup label="💬 確認提醒">
+        <option value="review_remind">客戶審核提醒</option>
+        <option value="text_first">文字先上架、圖片後補確認</option>
+      </optgroup>
+      <optgroup label="🖼️ 圖片類">
+        <option value="img_review">圖片審核</option>
+        <option value="img_during_review">審核時圖片剛好做好</option>
+      </optgroup>
+      <optgroup label="🚀 上架類">
+        <option value="client_pub">客戶自行上架</option>
+        <option value="rev_pub">修改＋請客戶上架</option>
+        <option value="pub_links">文章上架後提供連結給客戶</option>
+      </optgroup>
+      <optgroup label="📈 潛力關鍵字">
+        <option value="pot_sm">小改（Meta 調整）</option>
+        <option value="pot_lg">大改（內容優化調整）</option>
+      </optgroup>
+    </select>
+    <div class="badges" id="scenarioBadges"></div>
+  </div>
+
+  <!-- STEP 2 -->
+  <div class="card hidden" id="formCard">
+    <div class="step-label">
+      <div class="step-num">2</div>
+      <span class="step-title">填入資訊</span>
+    </div>
+
+    <!-- 潛力關鍵字選項 -->
+    <div class="hidden" id="wrap_potSmType" style="margin-bottom:14px">
+      <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+        <label style="font-size:13px;font-weight:600;color:#475569;white-space:nowrap">通知類型</label>
+        <div class="radio-pills">
+          <label><input type="radio" name="potSmType" value="client" checked>客戶自己改</label>
+          <label><input type="radio" name="potSmType" value="before">先通知後改</label>
+          <label><input type="radio" name="potSmType" value="after">先改後通知</label>
+          <label><input type="radio" name="potSmType" value="noemail">無需寄信</label>
+        </div>
+      </div>
+    </div>
+    <div class="hidden" id="wrap_potLgType" style="margin-bottom:14px">
+      <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+        <label style="font-size:13px;font-weight:600;color:#475569;white-space:nowrap">通知類型</label>
+        <div class="radio-pills">
+          <label><input type="radio" name="potLgType" value="after" checked>先改後通知</label>
+          <label><input type="radio" name="potLgType" value="before">先通知後改</label>
+          <label><input type="radio" name="potLgType" value="client">客戶上架</label>
+        </div>
+      </div>
+    </div>
+    <div class="hidden" id="wrap_potOptions" style="margin-top:10px">
+      <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+        <label style="font-size:13px;font-weight:600;color:#475569;white-space:nowrap">調整項目</label>
+        <div class="checkbox-group">
+          <label><input type="checkbox" id="pot_chgTitle" checked> 調整標題</label>
+          <label><input type="checkbox" id="pot_chgDesc" checked> 調整前言</label>
+          <label><input type="checkbox" id="pot_updateDate" checked> 更新日期</label>
+        </div>
+      </div>
+      <div class="divider" style="margin:18px 0 14px"></div>
+    </div>
+
+    <div class="grid" id="basicFields">
+      <div class="field">
+        <label>客戶名稱</label>
+        <input type="text" id="f_cn" placeholder="例：OO診所" />
+      </div>
+      <div class="field">
+        <label>聯絡人姓名</label>
+        <input type="text" id="f_ct" placeholder="例：陳小姐" />
+        <div class="date-shortcuts">
+          <button type="button" class="date-shortcut-btn" onclick="fillPartnerName()">（客戶名稱）夥伴們好</button>
+          <button type="button" class="date-shortcut-btn" onclick="document.getElementById('f_ct').value='您好～'">您好～</button>
+          <button type="button" class="date-shortcut-btn" onclick="document.getElementById('f_ct').value='您們好～'">您們好～</button>
+        </div>
+      </div>
+      <div class="field span2 hidden" id="wrap_contentType">
+        <label>內容類型（可複選）</label>
+        <div class="checkbox-group">
+          <label><input type="checkbox" id="ct_arch"> 架構</label>
+          <label><input type="checkbox" id="ct_article"> 文章</label>
+          <label><input type="checkbox" id="ct_product"> 產品頁</label>
+          <label><input type="checkbox" id="ct_optimize"> 優化既有文章頁</label>
+        </div>
+      </div>
+      <div class="field span2 hidden" id="wrap_firstSend">
+        <div class="checkbox-group">
+          <label><input type="checkbox" id="ct_firstSend"> 首次寄送此客戶</label>
+        </div>
+      </div>
+      <div class="field span2 hidden" id="wrap_firstThree">
+        <div class="checkbox-group">
+          <label><input type="checkbox" id="ct_firstThree" checked> 首三篇／第一次確認上架</label>
+        </div>
+      </div>
+      <div class="field span2 hidden" id="wrap_pubOptions">
+        <div class="checkbox-group">
+          <label><input type="checkbox" id="ct_textFirst"> 建議文字先上架</label>
+          <label><input type="checkbox" id="ct_pubNotes"> 附上架注意事項</label>
+        </div>
+      </div>
+      <div class="field span2 hidden" id="wrap_noEmail">
+        <div class="checkbox-group">
+          <label><input type="checkbox" id="ct_noEmail"> 不寄 Email（僅 LINE 通知）</label>
+        </div>
+      </div>
+      <div class="field span2" id="wrap_kw">
+        <label>核心關鍵字 <span style="font-weight:400;color:#94a3b8;font-size:11px">按 Enter 加下一個</span></label>
+        <input type="text" id="f_kw" placeholder="例：植牙、全口重建" />
+      </div>
+      <div class="field" id="wrap_count">
+        <label>篇數</label>
+        <input type="number" id="f_count" placeholder="3" min="1" max="20" value="3" />
+        <select id="f_count_select" class="hidden" style="width:100%;padding:6px 8px;border:1px solid #d1d5db;border-radius:6px;font-size:14px">
+          <option value="1">1 篇</option><option value="2">2 篇</option><option value="3" selected>3 篇</option>
+          <option value="4">4 篇</option><option value="5">5 篇</option><option value="6">6 篇</option>
+          <option value="7">7 篇</option><option value="8">8 篇</option><option value="9">9 篇</option>
+          <option value="10">10 篇</option><option value="15">15 篇</option><option value="20">20 篇</option>
+        </select>
+      </div>
+      <div class="field hidden" id="wrap_ver">
+        <label>版本號</label>
+        <input type="number" id="f_ver" placeholder="2" min="2" max="10" value="2" />
+        <div class="date-shortcuts">
+          <button type="button" class="date-shortcut-btn" onclick="document.getElementById('f_ver').value='2'">第 2 版</button>
+          <button type="button" class="date-shortcut-btn" onclick="document.getElementById('f_ver').value='3'">第 3 版</button>
+        </div>
+      </div>
+      <div class="field" id="wrap_dl">
+        <label>截止日期</label>
+        <input type="date" id="f_dl" />
+        <div class="date-shortcuts">
+          <button type="button" class="date-shortcut-btn" onclick="setDateShortcut(3)">＋3 天</button>
+          <button type="button" class="date-shortcut-btn" onclick="setDateShortcut(7)">＋1 週</button>
+        </div>
+      </div>
+      <div class="field hidden" id="wrap_replyDl">
+        <label>回覆期限</label>
+        <input type="text" id="f_replyDl" placeholder="今天下班前" readonly />
+        <div class="date-shortcuts">
+          <button type="button" class="date-shortcut-btn" onclick="document.getElementById('f_replyDl').value='今天下班前'">今天</button>
+          <button type="button" class="date-shortcut-btn" onclick="document.getElementById('f_replyDl').value='明天下班前'">明天</button>
+        </div>
+      </div>
+      <div class="field" id="wrap_sg">
+        <label>署名</label>
+        <input type="text" id="f_sg" placeholder="例：昕芮" />
+      </div>
+    </div>
+
+    <!-- 連結（動態產生） -->
+    <div class="link-section hidden" id="linkSection">
+      <div class="divider"></div>
+      <div class="section-title">📎 文件連結</div>
+      <div id="linkRows"></div>
+    </div>
+
+    <!-- 配圖資料夾 -->
+    <div class="link-section hidden" id="wrap_imgFolder">
+      <div class="divider"></div>
+      <div class="section-title">🖼️ 配圖資料夾</div>
+      <div class="grid">
+        <div class="field span2">
+          <label>配圖資料夾連結</label>
+          <div style="display:flex;align-items:center;gap:6px">
+            <input type="text" id="f_imgFolder" placeholder="貼上 Google Drive 配圖資料夾連結" style="flex:1" oninput="checkImgFolderAccess()" />
+            <span class="link-status" id="ls_imgFolder"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 內部群組訊息欄位（pub_links 專用） -->
+    <div class="link-section hidden" id="wrap_groupMsg">
+      <div class="divider"></div>
+      <div class="section-title">📢 內部群組訊息</div>
+      <div class="grid">
+        <div class="field span2">
+          <label>CRM 客戶名稱 <span style="font-weight:400;color:#94a3b8;font-size:11px">含公司全名與簡稱</span></label>
+          <input type="text" id="f_crmName" placeholder="例：優尼客室內裝修有限公司（優尼客空間設計）" />
+        </div>
+        <div class="field">
+          <label>上架日期</label>
+          <input type="date" id="f_pubDate" />
+        </div>
+      </div>
+    </div>
+
+    <!-- 潛力關鍵字選項（已移至 basicFields 前） -->
+
+    <!-- Meta 資訊（動態產生） -->
+    <div class="meta-section hidden" id="metaSection">
+      <div class="divider"></div>
+      <div class="section-title">📊 Meta 調整內容</div>
+      <div id="metaRows"></div>
+    </div>
+
+    <!-- 文檔名稱 & 連結 -->
+    <div class="meta-section hidden" id="docSection">
+      <div class="divider"></div>
+      <div class="section-title">📄 文檔資訊</div>
+      <div class="grid">
+        <div class="field span2">
+          <label>文檔名稱（自動帶入）</label>
+          <input type="text" id="f_docName" placeholder="自動帶入客戶名稱＋日期" />
+        </div>
+        <div class="field span2">
+          <label>文檔連結</label>
+          <div style="display:flex;align-items:center;gap:6px">
+            <input type="text" id="f_docLink" placeholder="貼上 Google Doc 文檔連結" style="flex:1" oninput="checkDocLinkAccess()" />
+            <span class="link-status" id="ls_docLink"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <button class="gen-btn" id="genBtn">✨ 生成訊息</button>
+  </div>
+
+  <!-- STEP 3 -->
+  <div class="output-section hidden" id="outputSection">
+    <div class="step-label">
+      <div class="step-num">3</div>
+      <span class="step-title">複製訊息</span>
+    </div>
+
+    <!-- Email -->
+    <div class="card hidden" id="emailCard">
+      <div class="out-header">
+        <span class="out-title">📧 Email</span>
+      </div>
+      <div class="subj-row">
+        <div class="subj-top">
+          <span class="subj-label">主旨</span>
+          <button class="copy-mini email" id="copySubjBtn">複製主旨</button>
+        </div>
+        <div class="subj-box" id="outSubject"></div>
+      </div>
+      <div class="body-top">
+        <span class="body-label">內文</span>
+        <button class="copy-btn email" id="copyEmailBtn">複製內文</button>
+      </div>
+      <div class="body-pre email" id="outEmail" style="line-height:1.85"></div>
+    </div>
+
+    <!-- LINE -->
+    <div class="card hidden" id="lineCard" style="margin-top:0">
+      <div class="out-header">
+        <span class="out-title">💬 LINE 訊息</span>
+        <button class="copy-btn line" id="copyLineBtn">複製</button>
+      </div>
+      <pre class="body-pre line" id="outLine"></pre>
+    </div>
+
+    <!-- 內部群組 -->
+    <div class="card hidden" id="groupCard" style="margin-top:0">
+      <div class="out-header">
+        <span class="out-title">📢 內部群組</span>
+        <button class="copy-btn line" id="copyGroupBtn">複製</button>
+      </div>
+      <div class="body-pre line" id="outGroup" style="line-height:1.85"></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ─── GAS 權限檢查 API ────────────────────────────────────────────────
+// 部署 GAS 後，將 Web App URL 貼到這裡（見 gas-permission-checker.js）
+const GAS_PERMISSION_URL = 'https://script.google.com/macros/s/AKfycby3bmEYUsboTf_qhU01u9zlmOyZioZLXpbZP0-n0E5MaRfB0ApRQ938tDdlXnfMzhew/exec';
+
+// ─── GAS 截止日紀錄 + Slack 提醒 API ─────────────────────────────────
+// 部署 GAS 後，將 Web App URL 貼到這裡（見 gas-deadline-logger.js）
+const GAS_LOGGER_URL = ''; // ← 部署後貼入 URL
+
+// ─── 情境設定 ───────────────────────────────────────────────────────
+const SC = {
+  // ctAvail: 該情境可選的內容類型 [架構, 文章, 產品頁, 優化既有文章頁]，1=可選 0=隱藏
+  // ctDefaults: 預設勾選狀態
+  combo_send:          { email:true,  line:true,  links:true,  ver:false, meta:false, doc:false, noDl:false, noCount:false, contentType:true,  ctAvail:[1,1,1,1], ctDefaults:[0,0,0,0], firstSend:true },
+  combo_rev:           { email:true,  line:true,  links:true,  ver:true,  meta:false, doc:false, noDl:false, noCount:false, contentType:true,  ctAvail:[1,1,1,1], ctDefaults:[0,1,0,0], canNoEmail:true },
+  review_remind:       { email:false, line:true,  links:false, ver:false, meta:false, doc:false, noDl:true,  noCount:false, replyDl:true, contentType:true,  ctAvail:[1,1,1,1], ctDefaults:[0,1,0,0] },
+  img_review:          { email:true,  line:true,  links:true,  ver:false, meta:false, doc:false, noDl:false, noCount:false },
+  text_first:          { email:false, line:true,  links:false, ver:false, meta:false, doc:false, noDl:true,  noCount:false, noKw:true, firstThree:true },
+  img_during_review:   { email:false, line:true,  links:false, ver:false, meta:false, doc:false, noDl:true,  noCount:false },
+  client_pub:          { email:true,  line:true,  links:true,  ver:false, meta:false, doc:false, noDl:false, noCount:true,  contentType:true,  ctAvail:[0,1,1,1], ctDefaults:[0,1,0,0], imgFolder:true },
+  rev_pub:             { email:true,  line:true,  links:true,  ver:true,  meta:false, doc:false, noDl:false, noCount:false, contentType:true,  ctAvail:[0,1,1,1], ctDefaults:[0,1,0,0], pubOptions:true },
+  pub_links:           { email:true,  line:true,  links:true,  ver:false, meta:false, doc:false, noDl:true,  noCount:false, contentType:true,  ctAvail:[0,1,1,1], ctDefaults:[0,1,0,0], linkTitle:true, groupMsg:true },
+  pot_sm:              { email:true,  line:true,  links:false, ver:false, meta:true,  doc:false, noDl:false, noCount:false, potOptions:true, potSmType:true },
+  pot_lg:              { email:true,  line:true,  links:false, ver:false, meta:false, doc:true,  noDl:false, noCount:false, potLgType:true },
+};
+
+// ─── 日期格式化 ────────────────────────────────────────────────────
+function fmtDate(iso) {
+  if (!iso) return '';
+  const [y, m, d] = iso.split('-').map(Number);
+  const date = new Date(y, m - 1, d);
+  const dow = ['日','一','二','三','四','五','六'][date.getDay()];
+  return `${String(m).padStart(2,'0')}/${String(d).padStart(2,'0')}（${dow}）`;
+}
+
+// ─── 內容類型 ──────────────────────────────────────────────────────
+function getContentDesc() {
+  const a = document.getElementById('ct_arch').checked;
+  const t = document.getElementById('ct_article').checked;
+  const p = document.getElementById('ct_product').checked;
+  const o = document.getElementById('ct_optimize').checked;
+  if (!a && !t && !p && !o) return '文章';
+  if (!a && !t && !o && p) return '頁面優化';
+  if (!a && !t && !p && o) return '頁面優化';
+  const parts = [];
+  if (a) parts.push('文章架構');
+  if (t) parts.push('文章');
+  if (p) parts.push('產品頁');
+  if (o) parts.push('優化既有文章頁');
+  return parts.join('、');
+}
+
+// ─── 動態連結管理 ──────────────────────────────────────────────────
+const TYPE_LABELS = { arch: '文章架構', article: '文章', product: '產品頁', optimize: '優化既有文章頁' };
+
+// 取得目前勾選的內容類型 key 陣列
+function getCheckedTypes() {
+  const types = [];
+  if (document.getElementById('ct_arch').checked)     types.push('arch');
+  if (document.getElementById('ct_article').checked)  types.push('article');
+  if (document.getElementById('ct_product').checked)  types.push('product');
+  if (document.getElementById('ct_optimize').checked) types.push('optimize');
+  return types;
+}
+
+// 建立 type <select> 的 options HTML
+function buildTypeOptions(types, selected) {
+  return types.map(t =>
+    `<option value="${t}"${t === selected ? ' selected' : ''}>${TYPE_LABELS[t]}</option>`
+  ).join('');
+}
+
+let currentMetaCount = 0;
+function updateMetaRows(n) {
+  n = Math.max(1, Math.min(20, parseInt(n) || 1));
+  const container = document.getElementById('metaRows');
+  const chgTitle = document.getElementById('pot_chgTitle').checked;
+  const chgDesc = document.getElementById('pot_chgDesc').checked;
+  // 保留現有值
+  const saved = {};
+  for (let i = 1; i <= currentMetaCount; i++) {
+    saved[i] = {};
+    ['oTitle','nTitle','oDesc','nDesc'].forEach(f => {
+      const el = document.getElementById('f_meta_' + f + i);
+      if (el) saved[i][f] = el.value;
+    });
+  }
+  container.innerHTML = '';
+  for (let i = 1; i <= n; i++) {
+    const group = document.createElement('div');
+    group.className = 'grid';
+    group.style.cssText = 'margin-bottom:12px;padding-bottom:12px;border-bottom:1px dashed #e5e7eb';
+    const kwParts = document.getElementById('f_kw').value.split(/[、，,]+/).map(s => s.trim()).filter(Boolean);
+    const kwLabel = kwParts[i-1] || `第 ${i} 篇`;
+    let html = `<div class="field span2" style="margin-bottom:2px"><span style="font-weight:700;font-size:13px;color:var(--ac-dark)">📌 ${kwLabel}</span></div>`;
+    if (chgTitle) {
+      html += `<div class="field span2"><label>原標題 / Meta Title</label><input type="text" id="f_meta_oTitle${i}" placeholder="原本的標題" /></div>`;
+      html += `<div class="field span2"><label>新標題 / Meta Title（改為）</label><input type="text" id="f_meta_nTitle${i}" placeholder="調整後的標題" /></div>`;
+    }
+    if (chgDesc) {
+      html += `<div class="field span2"><label>原 Meta Description</label><input type="text" id="f_meta_oDesc${i}" placeholder="原本的描述" /></div>`;
+      html += `<div class="field span2"><label>新 Meta Description（改為）</label><input type="text" id="f_meta_nDesc${i}" placeholder="調整後的描述" /></div>`;
+    }
+    group.innerHTML = html;
+    container.appendChild(group);
+    // 還原已存值
+    if (saved[i]) {
+      ['oTitle','nTitle','oDesc','nDesc'].forEach(f => {
+        const el = document.getElementById('f_meta_' + f + i);
+        if (el && saved[i][f]) el.value = saved[i][f];
+      });
+    }
+  }
+  currentMetaCount = n;
+}
+
+let currentLinkCount = 0;
+function updateLinkRows(n) {
+  n = Math.max(1, Math.min(20, parseInt(n) || 3));
+  const container = document.getElementById('linkRows');
+  const types = getCheckedTypes();
+  const showTypeSelect = types.length > 1;
+  const sc = SC[document.getElementById('scenarioSelect').value] || {};
+  const showTitle = !!sc.linkTitle;
+
+  // 保留現有值 & 類型選擇 & 標題
+  const saved = {};
+  const savedTypes = {};
+  const savedTitles = {};
+  for (let i = 1; i <= currentLinkCount; i++) {
+    const el = document.getElementById('f_l' + i);
+    if (el) saved[i] = el.value;
+    const sel = document.getElementById('f_lt' + i);
+    if (sel) savedTypes[i] = sel.value;
+    const tt = document.getElementById('f_lt_title' + i);
+    if (tt) savedTitles[i] = tt.value;
+  }
+  container.innerHTML = '';
+  for (let i = 1; i <= n; i++) {
+    const row = document.createElement('div');
+    row.className = 'link-row';
+    const typeLabel = types.length === 1 ? TYPE_LABELS[types[0]] : '';
+    const defaultType = savedTypes[i] && types.includes(savedTypes[i]) ? savedTypes[i] : types[0] || 'article';
+
+    let typeHtml;
+    if (showTypeSelect) {
+      typeHtml = `<select class="link-type-select" id="f_lt${i}">${buildTypeOptions(types, defaultType)}</select>`;
+    } else {
+      typeHtml = `<input type="hidden" id="f_lt${i}" value="${types[0] || 'article'}" />`
+        + `<span class="link-label" style="color:var(--ac-dark);min-width:auto">${typeLabel}</span>`;
+    }
+
+    const titleHtml = showTitle
+      ? `<input type="text" class="link-title-input" id="f_lt_title${i}" placeholder="文章標題（貼上連結自動抓取，或手動輸入）" style="width:100%;padding:4px 8px;border:1px solid #e5e7eb;border-radius:4px;font-size:12px;color:#374151;margin-top:2px" />`
+      : `<input type="hidden" id="f_lt_title${i}" value="" />`;
+
+    const dotHtml = showTitle ? '' : `<span class="link-status" id="ls${i}" title="貼上連結後自動檢查"></span>`;
+    row.innerHTML = `<span class="link-label">連結 ${i}</span>`
+      + typeHtml
+      + `<input type="url" class="link-url-input" id="f_l${i}" placeholder="${showTitle ? 'https://example.com/...' : 'https://docs.google.com/...'}" />`
+      + dotHtml
+      + titleHtml;
+    container.appendChild(row);
+    if (saved[i]) document.getElementById('f_l' + i).value = saved[i];
+    if (savedTitles[i]) document.getElementById('f_lt_title' + i).value = savedTitles[i];
+    // 綁定 debounce 檢查 + 自動抓標題（僅 linkTitle 情境）
+    (function(idx) {
+      let timer;
+      document.getElementById('f_l' + idx).addEventListener('input', function() {
+        clearTimeout(timer);
+        const dot = document.getElementById('ls' + idx);
+        if (dot) { dot.className = 'link-status'; dot.title = ''; }
+        const url = this.value.trim();
+        if (url) {
+          timer = setTimeout(() => {
+            if (!showTitle) checkLinkAccess(idx);
+            if (showTitle) fetchPageTitle(idx, url);
+          }, 800);
+        }
+      });
+    })(i);
+  }
+  currentLinkCount = n;
+}
+
+// 嘗試抓取網頁 <title>
+async function fetchPageTitle(idx, url) {
+  const titleEl = document.getElementById('f_lt_title' + idx);
+  if (!titleEl || titleEl.value.trim()) return;
+  if (/docs\.google\.com|drive\.google\.com/.test(url)) return;
+  titleEl.placeholder = '抓取標題中...';
+  const extractTitle = (html) => {
+    // 優先用 og:title，沒有再用 <title>
+    const og = html.match(/<meta[^>]*property=["']og:title["'][^>]*content=["']([^"']+)["']/i)
+              || html.match(/<meta[^>]*content=["']([^"']+)["'][^>]*property=["']og:title["']/i);
+    if (og && og[1]) return og[1].trim();
+    const t = html.match(/<title[^>]*>([^<]+)<\/title>/i);
+    if (t && t[1]) return t[1].trim().replace(/\s+/g, ' ');
+    return null;
+  };
+  // 方法 1：直接 fetch
+  try {
+    const res = await fetch(url, { mode: 'cors' });
+    if (res.ok) {
+      const title = extractTitle(await res.text());
+      if (title) { titleEl.value = title; titleEl.style.borderColor = '#86efac'; return; }
+    }
+  } catch(e) {}
+  // 方法 2：codetabs proxy
+  try {
+    const res = await fetch('https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(url));
+    if (res.ok) {
+      const title = extractTitle(await res.text());
+      if (title) { titleEl.value = title; titleEl.style.borderColor = '#86efac'; return; }
+    }
+  } catch(e) {}
+  titleEl.placeholder = '無法自動抓取，請手動輸入標題';
+}
+
+// checkbox 勾選變動時，刷新現有連結列的類型欄（不重建 URL 值）
+function refreshLinkTypeLabels() {
+  if (currentLinkCount > 0) {
+    const oldCount = currentLinkCount;
+    currentLinkCount = 0; // force rebuild
+    updateLinkRows(oldCount);
+  }
+}
+
+// ─── 讀欄位值 ──────────────────────────────────────────────────────
+function vals() {
+  const dl = document.getElementById('f_dl').value;
+  const count = parseInt(document.getElementById('f_count').value) || 3;
+  // 動態讀取所有連結 + 每列的內容類型
+  const links = [];
+  const linkTypes = [];
+  const linkTitles = [];
+  for (let i = 1; i <= currentLinkCount; i++) {
+    const el = document.getElementById('f_l' + i);
+    links.push(el ? el.value.trim() : '');
+    const lt = document.getElementById('f_lt' + i);
+    linkTypes.push(lt ? lt.value : 'article');
+    const tt = document.getElementById('f_lt_title' + i);
+    linkTitles.push(tt ? tt.value.trim() : '');
+  }
+  return {
+    cn: document.getElementById('f_cn').value.trim() || '【客戶名】',
+    ct: document.getElementById('f_ct').value.trim() || 'XX',
+    kw: document.getElementById('f_kw').value.trim() || '【關鍵字】',
+    count: String(count),
+    links: links,
+    linkTypes: linkTypes,
+    linkTitles: linkTitles,
+    dl: fmtDate(dl) || '【截止日期】',
+    sg: document.getElementById('f_sg').value.trim() || '【署名】',
+    ver: document.getElementById('f_ver').value || '2',
+    chgTitle: document.getElementById('pot_chgTitle').checked,
+    chgDesc: document.getElementById('pot_chgDesc').checked,
+    updateDate: document.getElementById('pot_updateDate').checked,
+    metaItems: (function() {
+      const kwStr = document.getElementById('f_kw').value.trim();
+      const kwParts = kwStr.split(/[、，,]+/).map(s => s.trim()).filter(Boolean);
+      const items = [];
+      for (let i = 1; i <= currentMetaCount; i++) {
+        items.push({
+          kw: kwParts[i-1] || '',
+          oTitle: (document.getElementById('f_meta_oTitle' + i) || {}).value || '',
+          nTitle: (document.getElementById('f_meta_nTitle' + i) || {}).value || '',
+          oDesc: (document.getElementById('f_meta_oDesc' + i) || {}).value || '',
+          nDesc: (document.getElementById('f_meta_nDesc' + i) || {}).value || '',
+        });
+      }
+      return items;
+    })(),
+    potSmType: (document.querySelector('input[name="potSmType"]:checked') || {}).value || 'client',
+    potLgType: (document.querySelector('input[name="potLgType"]:checked') || {}).value || 'after',
+    docName: document.getElementById('f_docName').value.trim() || '【文檔名稱】',
+    docLink: document.getElementById('f_docLink').value.trim(),
+    replyDl: document.getElementById('f_replyDl').value.trim() || '今天/明天下班前',
+    contentDesc: getContentDesc(),
+    hasArch: document.getElementById('ct_arch').checked,
+    hasArticle: document.getElementById('ct_article').checked,
+    hasProduct: document.getElementById('ct_product').checked,
+    hasOptimize: document.getElementById('ct_optimize').checked,
+    isFirstSend: document.getElementById('ct_firstSend').checked,
+    isFirstThree: document.getElementById('ct_firstThree').checked,
+    noEmail: document.getElementById('ct_noEmail').checked,
+    textFirst: document.getElementById('ct_textFirst').checked,
+    pubNotes: document.getElementById('ct_pubNotes').checked,
+    imgFolder: document.getElementById('f_imgFolder').value.trim(),
+    crmName: document.getElementById('f_crmName').value.trim(),
+    pubDate: document.getElementById('f_pubDate').value,
+  };
+}
+
+// ─── 輔助 ─────────────────────────────────────────────────────────
+function escH(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+// ─── Email 格式化（粗體 / 斜體 / 列點）────────────────────────────
+function applyEmailFormatting(html) {
+  // 數字列點加粗＋深色（1. 2. 3. 開頭）
+  html = html.replace(/(<br>)(\d+\. [^<]+)/g, '$1<strong style="color:#2c3e50">$2</strong>');
+  html = html.replace(/^(\d+\. [^<]+)/, '<strong style="color:#2c3e50">$1</strong>');
+
+  // PS. / 備註：加斜體
+  html = html.replace(/(<br>)(PS\. [^<]+)/g, '$1<em style="color:#666">$2</em>');
+  html = html.replace(/(<br>)(備註：[^<]+)/g, '$1<em style="color:#666">$2</em>');
+
+  // 固定重要詞彙加粗＋紅色
+  [
+    'Google SEO 規範',
+    '不是完整最終文字',
+    '使用者的搜尋意圖分析，以及核心與長尾關鍵字的搜尋量、競爭度、搜尋趨勢等調查，',
+    '1~2 次的文章修改額度',
+    '1~2 次的修改額度',
+    '【文章內文、後台 SEO 標題／Meta】',
+    '【文章內文、後台 SEO Meta Title】',
+    '【文章內文、後台 SEO Meta Description】',
+    '【文章內文、後台 SEO Meta Title 跟 Meta Description】',
+    '【更新文章日期】',
+    '（產品頁此階段審核通過後，將會是上架至貴公司官網的版本。）',
+    '為加速文章產出，目前先請您協助確認文字，圖片後續補上後，會再給您確認一次圖片內容。',
+  ].forEach(p => {
+    const e = escH(p);
+    html = html.split(e).join(`<strong style="color:#c0392b">${e}</strong>`);
+  });
+
+  // 「客戶自行上架文章之注意事項」→ 超連結
+  const notesText = escH('客戶自行上架文章之注意事項');
+  const notesUrl = 'https://docs.google.com/document/d/1z7CvV1qqp-GrgArzOB5Qb-XtRC4Timp8z6jPN0nwrf4/edit#heading=h.va4qkums8p4p';
+  html = html.split(notesText).join(`<a href="${notesUrl}" style="color:#4f46e5;text-decoration:underline;font-weight:600">${notesText}</a>`);
+
+  // 自動將 URL 轉為超連結（排除已在 href="" 內的）
+  html = html.replace(/(?<!href=")(https?:\/\/[^\s<"]+)/g, (match) => {
+    return `<a href="${match}" style="color:#4f46e5;text-decoration:underline">${match}</a>`;
+  });
+
+  return html;
+}
+
+function makeEmailHtml(plain, lb, lbHtml) {
+  // 把 email 純文字轉 HTML，並將 lb 區段替換為帶超連結版本
+  const toHtml = s => applyEmailFormatting(escH(s).replace(/\n/g, '<br>'));
+  if (!lb || lb.startsWith('[連結')) {
+    return toHtml(plain);
+  }
+  const parts = plain.split(lb);
+  if (parts.length < 2) return toHtml(plain);
+  return parts.map((p, i) => {
+    return i < parts.length - 1 ? toHtml(p) + lbHtml : toHtml(p);
+  }).join('');
+}
+
+// ─── 模板 ─────────────────────────────────────────────────────────
+// 小改：每篇 Meta 區塊（列點格式）
+function buildMetaBlock(items, isAfter, chgTitle, chgDesc) {
+  return items.map(m => {
+    const parts = [];
+    parts.push(`核心關鍵字：${m.kw || '【關鍵字】'}`);
+    if (chgTitle) {
+      parts.push(`原標題及 SEO 標題（Meta Title）：${m.oTitle || '【原標題】'}`);
+      parts.push(`${isAfter ? '現' : ''}標題及 SEO 標題（Meta Title）${isAfter ? '' : '請改為'}：${m.nTitle || '【新標題】'}`);
+    }
+    if (chgDesc) {
+      parts.push(`原前言及 SEO 描述（Meta Description）：${m.oDesc || '【原描述】'}`);
+      parts.push(`${isAfter ? '現' : ''}前言及 SEO 描述（Meta Description）${isAfter ? '' : '請改為'}：${m.nDesc || '【新描述】'}`);
+    }
+    return parts.join('\n');
+  }).join('\n\n');
+}
+
+function gen(id) {
+  const v = vals();
+
+  // 稱呼 & 問候語（「您好～」「您們好～」直接當開頭，不再加「您好：」）
+  const isDirectGreeting = v.ct.endsWith('～');
+  const hi = isDirectGreeting ? v.ct : `${v.ct} 您好：`;
+  const dearHi = isDirectGreeting ? v.ct : `Dear ${v.ct} 您好：`;
+
+  // 關鍵字拆分 → 用於文章名稱 & 格式化顯示
+  const kwParts = v.kw.split(/[、，,]+/).map(s => s.trim()).filter(Boolean);
+  const kwFmt = kwParts.length ? `【${kwParts.join('、')}】` : `【${v.kw}】`;
+
+  // 動態連結（N 個，跟篇數連動）+ 每列內容類型
+  const rawLinks = v.links.map((url, i) => ({
+    kw: kwParts[i] || '',
+    url: url,
+    type: TYPE_LABELS[v.linkTypes[i]] || ''
+  }));
+  const filledLinks = rawLinks.filter(r => r.url);
+  const linkCount = parseInt(v.count) || 3;
+
+  // 純文字連結塊（含類型標籤）
+  const lb = filledLinks.length
+    ? filledLinks.map((r, i) => {
+        const kwPart = r.kw ? `【${r.kw}】` : '';
+        const typePart = r.type || '';
+        return `連結 ${i+1} ${kwPart}${typePart} ${r.url}`;
+      }).join('\n')
+    : Array.from({length: linkCount}, (_, i) => `[連結 ${i+1}]`).join('\n');
+
+  // HTML 超連結版本（含類型標籤）
+  const lbHtml = filledLinks.length
+    ? '<ul style="margin:6px 0;padding-left:22px">' +
+      filledLinks.map((r, i) => {
+        const kwPart = r.kw ? `【${r.kw}】` : '';
+        const typePart = r.type || '';
+        const label = (kwPart || typePart) ? `${kwPart}${typePart}` : r.url;
+        return `<li style="margin:3px 0">連結 ${i+1} <a href="${escH(r.url)}" style="color:#4f46e5;text-decoration:underline">${escH(label)}</a></li>`;
+      }).join('') + '</ul>'
+    : '<ul style="margin:6px 0;padding-left:22px;color:#aaa">' +
+      Array.from({length: linkCount}, (_, i) => `<li>[連結 ${i+1}]</li>`).join('') + '</ul>';
+
+  // 內容類型描述（從 checkbox 動態產生）
+  const cd = v.contentDesc;
+  // 產品頁 / 優化既有文章頁附加說明
+  const specialPages = [];
+  if (v.hasProduct) specialPages.push('產品頁');
+  if (v.hasOptimize) specialPages.push('優化既有文章頁');
+  const productNote = specialPages.length ? `\n（${specialPages.join('、')}此階段審核通過後，將會是上架至貴公司官網的版本。）` : '';
+  // 文章 / 優化既有文章頁 → 圖片後補備註
+  const imgLaterNote = (v.hasArticle || v.hasOptimize) ? '\n\n備註：為加速文章產出，目前先請您協助確認文字，圖片後續補上後，會再給您確認一次圖片內容。' : '';
+  // 文檔引用（純文字版嵌入連結）
+  const docRef = v.docLink
+    ? `這個文檔「${v.docName}」（${v.docLink}）`
+    : `這個文檔「${v.docName}」`;
+  // 配圖資料夾（嵌入連結列表）
+  const imgFolderLine = v.imgFolder ? `配圖資料夾：${v.imgFolder}` : '';
+
+  // 小改：動態產生調整項目描述
+  const potChangeParts = [];
+  if (v.chgTitle) potChangeParts.push('標題');
+  if (v.chgDesc) potChangeParts.push('前言');
+  const potChangeText = potChangeParts.join('與');
+  const potMetaRef = potChangeParts.map(p => p === '標題' ? 'Meta Title' : 'Meta Description').join(' 跟 ');
+  const potActionText = potChangeParts.length
+    ? `調整相應文章的${potChangeText}（包含 ${potMetaRef}）` : '進行優化調整';
+  const potClientAction = [];
+  if (potChangeParts.length) potClientAction.push(`【文章內文、後台 SEO ${potMetaRef}】`);
+  if (v.updateDate) potClientAction.push('【更新文章日期】');
+  const potClientActionText = potClientAction.join('並');
+  switch(id) {
+    case 'combo_send': {
+      // 有勾架構 → 架構模板語氣；沒勾 → 文章模板語氣
+      const archEmail = `${dearHi}\n\n我們內部團隊已根據使用者的搜尋意圖分析，以及核心與長尾關鍵字的搜尋量、競爭度、搜尋趨勢等調查，依照 Google SEO 規範安排好${kwFmt} ${v.count} 篇${cd}。\n\n架構階段的內容不是完整最終文字，我們在每份文件中皆有詳細的【架構審稿提醒】，請您於閱讀後再進行審稿，此階段的審稿主要需請您協助的會是：\n\n1. 內文段落撰寫方向是否 ok\n2. 補充相關專業資訊或案例給我們\n3. 提供您專業領域必須留意的撰寫注意事項\n\n文件請參考以下連結：\n${lb}${productNote}${imgLaterNote}\n\n希望能於 ${v.dl} 前收到您的回覆，感謝！\n\n${v.sg}`;
+      const articleEmail = `${dearHi}\n\n${kwFmt} ${v.count} 篇 SEO ${cd}已完成，再麻煩您抽空進行確認，關於審稿的方式與注意事項請幫我們參考下列提供的文件檔案最上方，有詳細的【文章審稿說明】。${productNote}\n\n${lb}\n\n也須請留意，由於編撰文章花費時間長，我們僅提供 1~2 次的文章修改額度，再請盡量幫我們做好文章內容的修正建議唷！感謝！\n\n審核完畢後煩請詳讀各文件檔最下方的提醒文字，完成狀態勾選後通知我們，以方便我們開始著手為貴公司調整或上架。${imgLaterNote}\n\n希望您能協助於 ${v.dl} 前完成審稿回覆，感謝！\n\n${v.sg}`;
+      // LINE 首次寄送 → 有架構用架構詳細版；純文章/產品頁用文章首次版
+      const firstArchLine = `我們內部團隊已根據使用者的搜尋意圖分析，以及核心與長尾關鍵字的搜尋量、競爭度、搜尋趨勢等調查，依照 Google SEO 規範安排好${kwFmt} ${v.count} 篇${cd}。\n\n信件與檔案中皆有詳細的審稿提醒說明，要麻煩您於閱讀後再進行審稿，此階段的審稿主要需請您協助的會是：\n\n1. 內文段落撰寫方向是否 ok\n2. 補充相關專業資訊或案例給我們\n3. 提供您專業領域必須留意的撰寫注意事項\n\n詳細的說明文件檢附於信件中，希望能於 ${v.dl} 前收到您的回覆，謝謝！`;
+      const firstArticleLine = `剛才有寄送${kwFmt} ${v.count} 篇 SEO ${cd}到信箱，關於審稿的方式與注意事項請幫我們參考信件中提供的文件檔案，裡面有詳細的審稿說明。\n\n完整內容與附件請參考信件，希望能在 ${v.dl} 前收到您的回覆，感謝！`;
+      const shortArchLine = `剛才有寄送${kwFmt} ${v.count} 篇 SEO ${cd}到信箱，需麻煩您確認、補充撰寫上的偏好、專業資訊和注意事項。\n\n完整內容與附件請參考信件，希望能在 ${v.dl} 前收到回覆，以便我們開始著手為貴公司撰寫，感謝！`;
+      const shortArticleLine = `剛才有寄送${kwFmt} ${v.count} 篇 SEO ${cd}到信箱，完整內容與附件請參考信件，希望能在 ${v.dl} 前收到您的回覆，感謝！`;
+      const linePick = v.isFirstSend ? (v.hasArch ? firstArchLine : firstArticleLine) : (v.hasArch ? shortArchLine : shortArticleLine);
+      return {
+        subject: `【${v.cn}】SEO ${cd}第 1 版確認 - Welly`,
+        email: v.hasArch ? archEmail : articleEmail,
+        line: linePick,
+      };
+    }
+    case 'combo_rev': {
+      const hasOther = v.hasArticle || v.hasProduct || v.hasOptimize;
+      // nextStep：用在「我們內部會儘速___」語境
+      const nextStep = v.hasArch && hasOther ? '著手安排上架或撰寫'
+                     : v.hasArch ? '著手安排文章撰寫'
+                     : '安排上架文章';
+      // tailAction：用在「以便我們著手為貴公司___」語境
+      const tailAction = v.hasArch && hasOther ? '安排上架或撰寫'
+                       : v.hasArch ? '撰寫'
+                       : '上架文章與後續的追蹤';
+      if (v.noEmail) return {
+        email: null,
+        line: `以下附圖是${kwFmt}${cd}內容的修改與調整，請您協助確認調整的方向是否正確，希望可以在${v.replyDl}收到您的回覆，若確認沒問題後，我們內部會儘速${nextStep}，感謝！`,
+      };
+      // 有架構 → 強調「內容方向」；純文章 → 強調「內容」
+      const archNextNote = hasOther ? `；若沒問題我們內部會儘速${nextStep}` : '';
+      const archRevEmail = `${dearHi}\n\n${kwFmt} ${v.count} 篇${cd}修改第 ${v.ver} 版已完成，再請您確認修改以及補充的內容方向是否正確${archNextNote}。\n\n文件請參考以下連結：\n${lb}\n\n希望能於 ${v.dl} 收到您的回覆，感謝！\n\n${v.sg}`;
+      const articleRevEmail = `${dearHi}\n\n${kwFmt} ${v.count} 篇${cd}修改第 ${v.ver} 版已完成，再請您確認修改以及補充的內容是否正確；若沒問題我們內部會儘速${nextStep}。\n\n文件請參考以下連結：\n${lb}\n\n希望能於 ${v.dl} 收到您的回覆，感謝！\n\n${v.sg}`;
+      const archRevLine = `剛才有寄送${kwFmt} ${v.count} 篇${cd}修改到信箱，需麻煩您確認調整的撰寫方向與內容是否正確，感謝！\n\n完整內容與附件請參考信件，希望能在 ${v.dl} 前收到回覆，以便我們著手為貴公司${tailAction}，感謝！`;
+      const articleRevLine = `剛才有寄送${kwFmt} ${v.count} 篇${cd}修改到信箱，需麻煩您確認調整與新增的內容是否正確，感謝！\n\n完整內容與附件請參考信件，希望能在 ${v.dl} 前收到回覆，以便我們著手為貴公司${tailAction}，感謝！`;
+      return {
+        subject: `【${v.cn}】SEO ${cd}第 ${v.ver} 版確認 - Welly`,
+        email: v.hasArch ? archRevEmail : articleRevEmail,
+        line: v.hasArch ? archRevLine : articleRevLine,
+      };
+    }
+    case 'review_remind': {
+      const hasOther = v.hasArticle || v.hasProduct || v.hasOptimize;
+      const nextStep = v.hasArch && hasOther ? '著手安排上架或撰寫'
+                     : v.hasArch ? '著手安排文章撰寫'
+                     : '安排上架文章';
+      return {
+        email: null,
+        line: `想跟您確認我們 ${v.count} 篇${cd}審核的狀況都還好嗎？\n\n若確認沒問題後，我們內部會儘速${nextStep}，希望可以在${v.replyDl}收到您的回覆，若有任何問題或不懂的地方，都可以隨時提出來跟我討論唷！`,
+      };
+    }
+    case 'img_review': return {
+      subject: `【${v.cn}】SEO 圖片第 1 版確認 - Welly`,
+      email: `${dearHi}\n\n${kwFmt} ${v.count} 篇 SEO 圖片已經完成，連結如下，再麻煩您抽空進行確認！\n\n${lb}\n\n確認完畢後煩請幫我勾選「文件檔」最下方新增的提醒文字，或回覆此信件 or LINE，完成狀態勾選後通知我們，以便我們開始著手為貴公司調整或上架。\n\n希望能於 ${v.dl} 前收到您的回覆，感謝！\n\nPS. 我們的圖片素材取自 Freepik、Flaticon，公司也有購買 premium 付費方案，以上皆屬於合法來源，可以作為商業用途，請您放心。\n\n${v.sg}`,
+      line: `剛才有寄送${kwFmt} ${v.count} 篇 SEO「圖片」到您的信箱，完整內容與附件請參考信件，希望能在 ${v.dl} 前收到您的回覆，感謝！`,
+    };
+    case 'text_first': {
+      const firstThreeLine = `若是 ${v.count} 篇文章確認完畢後，我們會建議文字可以先上架，因為 Google 需要時間爬取內容與建立索引，索引建立後才會進到排名階段，這段時間因為沒有搜尋量，民眾搜尋點擊進來的機率較低，圖片後補對 SEO 影響也不大，那麼我們內部是否可以先安排文字部分的上架呢？\n\n這裡也會同步先放上相關合法示意圖作為暫時首圖，待後續配圖製作好會再通知您進行審核唷！`;
+      const nonFirstLine = `好的，這邊已確認文章內容沒問題！我們這邊會先安排文字部分上架唷，後續圖片製作好也會再寄送給您審核，感謝！`;
+      return {
+        email: null,
+        line: v.isFirstThree ? firstThreeLine : nonFirstLine,
+      };
+    }
+    case 'img_during_review': return {
+      email: null,
+      line: `${kwFmt} ${v.count} 篇文章 SEO 圖片已完成、置入文檔中，再麻煩客戶審核文字時一併進行確認，感謝您！`,
+    };
+    case 'client_pub': {
+      const pubLinks = [lb, imgFolderLine].filter(Boolean).join('\n');
+      return {
+        subject: `【${v.cn}】SEO 專文上架通知與注意事項提醒 - Welly`,
+        email: `${hi}\n\n${kwFmt} SEO ${cd}已經確認完成，以下提供文檔、圖片檔案連結。協助上架文章後，再麻煩您於 ${v.dl} 前，回覆提供文章上架連結，以確保專案時程，及利於我們內部進行後續的數據追蹤與運營。\n\n${pubLinks}\n\n上架文章時，有一些 SEO 方面的注意事項，附上客戶自行上架文章之注意事項給您，還請依照 SEO 格式上架，若上架時遇到任何問題，歡迎聯繫我們。謝謝！\n\n${v.sg}`,
+        line: `方才有寄送一封「上架通知與注意事項提醒」信件，再麻煩客戶這邊協助上架，完整內容與附件請參考信件，希望能在 ${v.dl} 前，收到文章上架連結回覆，感謝您！`,
+      };
+    }
+    case 'rev_pub': {
+      let body;
+      if (v.textFirst) {
+        // 有文字先上架 → 連結在前，「若沒問題」接文字先上架說明
+        body = `${hi}\n\n${kwFmt} ${v.count} 篇${cd}修改第 ${v.ver} 版已完成，再請您確認修改以及補充的內容是否正確。文件請參考以下連結：\n${lb}\n\n若沒問題即可由貴司安排文章上架，我們會建議文字可以先上架，因為 Google 需要時間爬取內容與建立索引，索引建立後才會進到排名階段，這段時間也沒有搜尋量，民眾搜尋點擊進來的機率較低，不用擔心圖片後補對 SEO 或閱讀體驗的影響。`;
+        if (v.pubNotes) {
+          body += `\n\n此外，上架文章時，有一些 SEO 方面的注意事項，附上客戶自行上架文章之注意事項給您，還請依照 SEO 格式上架，若上架時遇到任何問題，歡迎聯繫我們。`;
+        }
+      } else {
+        // 無文字先上架 → 「若沒問題」併入第一句，連結放後面
+        body = `${hi}\n\n${kwFmt} ${v.count} 篇${cd}修改第 ${v.ver} 版已完成，再請您確認修改以及補充的內容是否正確；若沒問題即可由貴司安排文章上架。\n\n文件請參考以下連結：\n${lb}`;
+        if (v.pubNotes) {
+          body += `\n\n上架文章時，有一些 SEO 方面的注意事項，附上客戶自行上架文章之注意事項給您，還請依照 SEO 格式上架，若上架時遇到任何問題，歡迎聯繫我們。`;
+        }
+      }
+      body += `\n\n以上，希望能於 ${v.dl} 前收到您的回覆，感謝！`;
+      // LINE 版本
+      let lineMsg = `剛才有寄送${kwFmt} ${v.count} 篇${cd}修改第 ${v.ver} 版到信箱，需麻煩您確認內容是否正確，若沒問題`;
+      if (v.textFirst) {
+        lineMsg += `我們會建議文字可以先上架，圖片後補對 SEO 影響不大，`;
+      } else {
+        lineMsg += `即可安排上架，`;
+      }
+      if (v.pubNotes) {
+        lineMsg += `上架時請留意信件中附上的 SEO 注意事項，`;
+      }
+      lineMsg += `詳細說明與附件請參考信件，希望能在 ${v.dl} 前收到您的回覆，感謝！`;
+      return {
+        subject: `【${v.cn}】SEO ${cd}第 ${v.ver} 版確認 - Welly`,
+        email: body,
+        line: lineMsg,
+      };
+    }
+    case 'pub_links': {
+      // 內部群組訊息
+      const pubDateRaw = v.pubDate;
+      let pubDateFmt = '';
+      if (pubDateRaw) {
+        const pd = new Date(pubDateRaw + 'T00:00:00');
+        pubDateFmt = `${pd.getMonth() + 1}/${pd.getDate()}`;
+      }
+      const crmDisplay = v.crmName || v.cn;
+      const kwParts = v.kw.split(/[、，,]+/).map(s => s.trim()).filter(Boolean);
+      // 純文字版（fallback）
+      const groupLines = [];
+      // HTML 版（富文字複製，連結嵌入文字）
+      const groupHtmlLines = [];
+      for (let i = 0; i < parseInt(v.count); i++) {
+        const kw = kwParts[i] || kwParts[0] || '關鍵字';
+        const title = v.linkTitles[i] || '';
+        const url = v.links[i] || '';
+        const label = `【${kw}】${title || url}`;
+        groupLines.push(`● ${label}${url ? ' ' + url : ''}`);
+        if (url) {
+          groupHtmlLines.push(`● <a href="${escH(url)}" style="color:#1a56db;text-decoration:underline">${escH(label)}</a>`);
+        } else {
+          groupHtmlLines.push(`● ${escH(label)}`);
+        }
+      }
+      const groupHeader = `${pubDateFmt}【${crmDisplay}】上架 ${v.count} 篇文章：`;
+      const groupBody = `${groupHeader}\n${groupLines.join('\n')}`;
+      const groupHtml = `${escH(groupHeader)}<br>${groupHtmlLines.join('<br>')}`;
+
+      return {
+        subject: `【${v.cn}】SEO 專文上架連結提供 - Welly`,
+        email: `${hi}\n\n${kwFmt} ${v.count} 篇 SEO ${cd}已上架至網站，連結如下：\n${lb}\n\n以上請查收，若文章上架內容有問題再請讓我們知道，感謝！\n\n${v.sg}`,
+        line: `${kwFmt} ${v.count} 篇 SEO ${cd}已上架至網站，連結檢附於信件中，請查收，若有問題再煩請與我們聯繫，謝謝！`,
+        groupMsg: groupBody,
+        groupMsgHtml: groupHtml,
+      };
+    }
+    case 'pot_sm': {
+      const t = v.potSmType;
+      const isAfter = t === 'after' || t === 'noemail';
+      const dateText = t === 'client' ? (v.updateDate ? '，並更新文章日期' : '') : (v.updateDate ? '，並更新日期' : '');
+      const metaBlock = buildMetaBlock(v.metaItems, isAfter, v.chgTitle, v.chgDesc);
+      let emailBody = null;
+      let lineBody;
+      if (t === 'client') {
+        emailBody = `${hi}\n\n文章上線至今，我們已經取得一些關鍵字曝光數據，為了幫助文章流量持續成長，需要請您協助${potActionText}${dateText}，請依照同仁安排好的文字調整${potClientActionText}：\n\n${metaBlock}\n\n再麻煩您協助，希望能於 ${v.dl} 前收到您完成調整的通知，\n\n以上，若有問題再請跟我們聯繫，謝謝！\n\n${v.sg}`;
+        lineBody = `文章上線至今，我們已經取得一些關鍵字曝光數據，為了幫助文章持續流量成長，需要請您協助調整${kwFmt} ${v.count} 篇 SEO 文章的${potChangeText}${dateText}，Welly 編輯已安排好文字內容，您只需要協助調整${potClientActionText}。\n\n信件稍早已經同步寄送至您的信箱，詳情請參照信件內容，希望能於 ${v.dl} 收到您完成調整的通知，\n\n以上，若有問題再請跟我們聯繫，謝謝！`;
+      } else if (t === 'before') {
+        emailBody = `${hi}\n\n文章上線至今，我們已經取得一些關鍵字曝光數據，為了幫助文章流量與排名持續成長，我們欲根據潛力關鍵字調整${kwFmt} ${v.count} 篇 SEO 文章的${potChangeText}${dateText}：\n\n${metaBlock}\n\n以上提供您知悉，若沒問題我們將進行上架文章的修改，希望能於 ${v.dl} 前收到您的回覆，謝謝。\n\n${v.sg}`;
+        lineBody = `文章上線至今，我們已經取得一些關鍵字曝光數據，為了幫助文章流量與排名持續成長，我們欲根據潛力關鍵字調整${kwFmt} ${v.count} 篇 SEO 文章的${potChangeText}${dateText}。\n\n調整的內容需請您協助確認，若沒問題我們將進行上架文章的修改。\n\n信件稍早已經同步寄送至您的信箱，詳情請參照信件內容，希望能於 ${v.dl} 前收到您的回覆～\n\n以上，若有問題再請跟我們聯繫，謝謝！`;
+      } else if (t === 'after') {
+        emailBody = `${hi}\n\n文章上線至今，我們已經取得一些關鍵字曝光數據，為了幫助文章流量與排名持續成長，我們調整了${kwFmt} ${v.count} 篇 SEO 文章的${potChangeText}${dateText}。\n\n${metaBlock}\n\n以上提供給您知悉，若有任何問題，請再與我們聯繫，謝謝！\n\n${v.sg}`;
+        lineBody = `文章上線至今，我們已經取得一些關鍵字曝光數據，為了幫助文章流量與排名持續成長，我們根據潛力關鍵字調整了${kwFmt} ${v.count} 篇 SEO 文章的${potChangeText}${dateText}。\n\n信件稍早已經同步寄送至您的信箱，以上，若有問題再請跟我們聯繫，謝謝！`;
+      } else {
+        // noemail
+        lineBody = `文章上線至今，我們已經取得一些關鍵字曝光數據，為了幫助文章流量與排名持續成長，我們根據潛力關鍵字調整了${kwFmt} ${v.count} 篇 SEO 文章的${potChangeText}${dateText}。\n\n以上，若有問題再請跟我們聯繫，謝謝！`;
+      }
+      return { subject: emailBody ? `【${v.cn}】SEO 專文優化調整 - Welly` : null, email: emailBody, line: lineBody };
+    }
+    case 'pot_lg': {
+      const lt = v.potLgType;
+      let emailBody, lineBody;
+      if (lt === 'after') {
+        emailBody = `${hi}\n\n文章上線至今，我們已經取得一些關鍵字曝光數據，為了幫助文章流量持續成長，已調整與豐富${kwFmt}這 ${v.count} 篇 SEO 文章的內容。\n\n調整的內容已整理在${docRef}，以上提供給您知悉，若有任何問題，請再與我們聯繫，謝謝！\n\n${v.sg}`;
+        lineBody = `文章上線至今，我們已經取得一些關鍵字曝光數據，為了幫助文章流量與排名持續成長，我們根據潛力關鍵字調整了${kwFmt}這 ${v.count} 篇 SEO 文章的些許內容。\n\n信件稍早已經同步寄送至您的信箱，以上，若有問題再請跟我們聯繫，謝謝！`;
+      } else if (lt === 'before') {
+        emailBody = `${hi}\n\n文章上線至今，我們已經取得一些關鍵字曝光數據，為了幫助文章流量持續成長，預計調整與豐富${kwFmt}這 ${v.count} 篇 SEO 文章的內容。\n\n調整的內容已整理在${docRef}，須麻煩您協助確認，若沒問題我們將會儘速安排更新文章的調整。\n\n以上，希望您可以在 ${v.dl} 前回覆，若有任何問題，請再與我們聯繫，謝謝！\n\n${v.sg}`;
+        lineBody = `文章上線至今，我們已經取得一些關鍵字曝光數據，為了幫助文章持續流量成長，預計新增與豐富${kwFmt}這 ${v.count} 篇 SEO 文章的內容。\n\n調整的內容需請您協助確認，若是沒問題我們會儘速安排更新文章的調整。\n\n信件稍早已經同步寄送至您的信箱，詳情請參照信件內容，希望能於 ${v.dl} 收到您的回覆～\n\n以上，若有問題再請跟我們聯繫，謝謝！`;
+      } else {
+        // client
+        emailBody = `${hi}\n\n文章上線至今，我們已經取得一些關鍵字曝光數據，為了幫助文章流量持續成長，預計新增與豐富${kwFmt}這 ${v.count} 篇 SEO 文章的內容，因此需要請您協助調整，並更新文章日期，請依照同仁安排好的文字進行調整即可。\n\n調整的內容已更新在${docRef}，再麻煩您協助，希望能於 ${v.dl} 前收到您完成調整的通知。\n\n以上，若有問題再請跟我們聯繫，謝謝！\n\n${v.sg}`;
+        lineBody = `文章上線至今，我們已經取得一些關鍵字曝光數據，為了幫助文章持續流量成長，預計新增與豐富${kwFmt}這 ${v.count} 篇 SEO 文章的內容。\n\nWelly 編輯已安排好內容，您只需要協助修改【文章內文、後台 SEO 標題／Meta】並【更新文章日期】。\n\n信件稍早已經同步寄送至您的信箱，詳情請參照信件內容，希望能於 ${v.dl} 收到您完成調整的通知～\n\n以上，若有問題再請跟我們聯繫，謝謝！`;
+      }
+      return { subject: `【${v.cn}】SEO 專文優化調整 - Welly`, email: emailBody, line: lineBody };
+    }
+    default: return { email: null, line: null };
+  }
+}
+
+function genWithHtml(id) {
+  const result = gen(id);
+  const v = vals();
+  const kwParts = v.kw.split(/[、，,]+/).map(s => s.trim()).filter(Boolean);
+  const rawLinks = v.links.map((url, i) => ({
+    kw: kwParts[i] || '',
+    url: url,
+    type: TYPE_LABELS[v.linkTypes[i]] || '',
+    title: v.linkTitles[i] || ''
+  }));
+  const filledLinks = rawLinks.filter(r => r.url);
+  const linkCount = parseInt(v.count) || 3;
+  // lb 必須跟 gen() 裡的格式完全一致，split 才能配上
+  const lb = filledLinks.length
+    ? filledLinks.map((r, i) => {
+        const kwPart = r.kw ? `【${r.kw}】` : '';
+        return `連結 ${i+1} ${kwPart}${r.type} ${r.url}`;
+      }).join('\n')
+    : Array.from({length: linkCount}, (_, i) => `[連結 ${i+1}]`).join('\n');
+  // 配圖資料夾（僅 imgFolder 情境使用，如 client_pub）
+  const sc = SC[document.getElementById('scenarioSelect').value] || {};
+  const imgFolderVal = sc.imgFolder ? v.imgFolder : '';
+  const imgFolderLine = imgFolderVal ? `配圖資料夾：${imgFolderVal}` : '';
+  const imgFolderHtmlLi = imgFolderVal
+    ? `<li style="margin:3px 0"><a href="${escH(imgFolderVal)}" style="color:#4f46e5;text-decoration:underline;font-weight:600">配圖資料夾</a></li>`
+    : '';
+  const lbHtml = filledLinks.length
+    ? '<ul style="margin:6px 0;padding-left:22px">' +
+      filledLinks.map((r, i) => {
+        if (r.title) return `<li style="margin:3px 0"><a href="${escH(r.url)}" style="color:#4f46e5;text-decoration:underline">${escH(r.title)}</a></li>`;
+        const kwPart = r.kw ? `【${r.kw}】` : '';
+        return `<li style="margin:3px 0">連結 ${i+1} <a href="${escH(r.url)}" style="color:#4f46e5;text-decoration:underline">${escH(kwPart)}${escH(r.type)}</a></li>`;
+      }).join('') + imgFolderHtmlLi + '</ul>'
+    : '<ul style="margin:6px 0;padding-left:22px;color:#aaa">' +
+      Array.from({length: linkCount}, (_, i) => `<li>[連結 ${i+1}]</li>`).join('') + imgFolderHtmlLi + '</ul>';
+  // 擴展 lb 讓 split 可以整塊替換（含配圖資料夾行）
+  const lbFull = imgFolderLine ? lb + '\n' + imgFolderLine : lb;
+  // 文檔連結：先從 plain text 移除 （URL），HTML 版再嵌入超連結
+  if (v.docLink && v.docName && result.email) {
+    result.email = result.email.split('（' + v.docLink + '）').join('');
+  }
+  if (result.email) {
+    result.emailHtml = makeEmailHtml(result.email, lbFull, lbHtml);
+    // 文檔名稱嵌入超連結
+    if (v.docLink && v.docName && result.emailHtml) {
+      const docPlain = escH(v.docName);
+      const docHyper = `<a href="${escH(v.docLink)}" style="color:#4f46e5;text-decoration:underline">${docPlain}</a>`;
+      result.emailHtml = result.emailHtml.split(docPlain).join(docHyper);
+    }
+    // 小改 Meta 區塊：純文字 → HTML 列點排版
+    if (v.metaItems && v.metaItems.length && sc.meta) {
+      const isAfterType = v.potSmType === 'after' || v.potSmType === 'noemail';
+      const plainMeta = buildMetaBlock(v.metaItems, isAfterType, v.chgTitle, v.chgDesc);
+      const htmlMeta = v.metaItems.map(m => {
+        let h = `<p style="margin:20px 0 8px;font-weight:700;color:#2c3e50">核心關鍵字：${escH(m.kw || '【關鍵字】')}</p>`;
+        h += '<ul style="margin:6px 0 16px;padding-left:22px">';
+        if (v.chgTitle) {
+          const labelNew = isAfterType ? '現' : '';
+          const verbNew = isAfterType ? '' : '請改為';
+          h += `<li style="margin:8px 0">原標題及 SEO 標題（Meta Title）：${escH(m.oTitle || '【原標題】')}</li>`;
+          h += `<li style="margin:8px 0">${labelNew}標題及 SEO 標題（Meta Title）${verbNew}：${escH(m.nTitle || '【新標題】')}</li>`;
+        }
+        if (v.chgDesc) {
+          const labelNew = isAfterType ? '現' : '';
+          const verbNew = isAfterType ? '' : '請改為';
+          h += `<li style="margin:8px 0">原前言及 SEO 描述（Meta Description）：${escH(m.oDesc || '【原描述】')}</li>`;
+          h += `<li style="margin:8px 0">${labelNew}前言及 SEO 描述（Meta Description）${verbNew}：${escH(m.nDesc || '【新描述】')}</li>`;
+        }
+        h += '</ul>';
+        return h;
+      }).join('<hr style="border:none;border-top:1px solid #e5e7eb;margin:16px 0">');
+      // 把純文字版 meta 區塊替換成 HTML 版
+      const plainMetaEsc = escH(plainMeta).split('\n').join('<br>');
+      if (result.emailHtml.includes(plainMetaEsc)) {
+        result.emailHtml = result.emailHtml.replace(plainMetaEsc, htmlMeta);
+      }
+    }
+  }
+  return result;
+}
+
+// ─── 主題系統 ──────────────────────────────────────────────────────
+const THEMES = [
+  { id:'indigo',  name:'靛藍',   ac:'#6366f1', dark:'#4f46e5', bg:'#eef2ff', hover:'#f1f0ff', grad:'#8b5cf6', shadow:'rgba(99,102,241,.3)',  ring:'#c7c3f9', subj:'#3730a3', pageBg:'#eeeef6', cardBorder:'rgba(99,102,241,.12)', cardShadow:'0 2px 8px rgba(99,102,241,.08)' },
+  { id:'violet',  name:'紫羅蘭', ac:'#8b5cf6', dark:'#7c3aed', bg:'#f5f3ff', hover:'#ede9fe', grad:'#a78bfa', shadow:'rgba(139,92,246,.3)',  ring:'#c4b5fd', subj:'#5b21b6', pageBg:'#f0edf8', cardBorder:'rgba(139,92,246,.12)', cardShadow:'0 2px 8px rgba(139,92,246,.08)' },
+  { id:'rose',    name:'玫瑰',   ac:'#f43f5e', dark:'#e11d48', bg:'#fff1f2', hover:'#ffe4e6', grad:'#fb7185', shadow:'rgba(244,63,94,.25)',  ring:'#fda4af', subj:'#9f1239', pageBg:'#f6eeed', cardBorder:'rgba(244,63,94,.12)',  cardShadow:'0 2px 8px rgba(244,63,94,.06)' },
+  { id:'coral',   name:'珊瑚',   ac:'#f97316', dark:'#ea580c', bg:'#fff7ed', hover:'#ffedd5', grad:'#fb923c', shadow:'rgba(249,115,22,.25)', ring:'#fdba74', subj:'#9a3412', pageBg:'#f5f0eb', cardBorder:'rgba(249,115,22,.12)', cardShadow:'0 2px 8px rgba(249,115,22,.06)' },
+  { id:'amber',   name:'琥珀',   ac:'#d97706', dark:'#b45309', bg:'#fffbeb', hover:'#fef3c7', grad:'#f59e0b', shadow:'rgba(217,119,6,.25)',  ring:'#fcd34d', subj:'#92400e', pageBg:'#f5f2ea', cardBorder:'rgba(217,119,6,.12)',  cardShadow:'0 2px 8px rgba(217,119,6,.06)' },
+  { id:'emerald', name:'翡翠',   ac:'#10b981', dark:'#059669', bg:'#ecfdf5', hover:'#d1fae5', grad:'#34d399', shadow:'rgba(16,185,129,.25)', ring:'#6ee7b7', subj:'#065f46', pageBg:'#ebf3ef', cardBorder:'rgba(16,185,129,.12)', cardShadow:'0 2px 8px rgba(16,185,129,.06)' },
+  { id:'teal',    name:'湖水藍', ac:'#14b8a6', dark:'#0d9488', bg:'#f0fdfa', hover:'#ccfbf1', grad:'#2dd4bf', shadow:'rgba(20,184,166,.25)', ring:'#5eead4', subj:'#115e59', pageBg:'#ebf2f1', cardBorder:'rgba(20,184,166,.12)', cardShadow:'0 2px 8px rgba(20,184,166,.06)' },
+  { id:'sky',     name:'天空藍', ac:'#0ea5e9', dark:'#0284c7', bg:'#f0f9ff', hover:'#e0f2fe', grad:'#38bdf8', shadow:'rgba(14,165,233,.25)', ring:'#7dd3fc', subj:'#075985', pageBg:'#eaf0f5', cardBorder:'rgba(14,165,233,.12)', cardShadow:'0 2px 8px rgba(14,165,233,.06)' },
+  { id:'sakura',  name:'櫻花粉', ac:'#ec4899', dark:'#db2777', bg:'#fdf2f8', hover:'#fce7f3', grad:'#f472b6', shadow:'rgba(236,72,153,.25)', ring:'#f9a8d4', subj:'#9d174d', pageBg:'#f5edf2', cardBorder:'rgba(236,72,153,.12)', cardShadow:'0 2px 8px rgba(236,72,153,.06)' },
+  { id:'slate',   name:'石墨',   ac:'#64748b', dark:'#475569', bg:'#f1f5f9', hover:'#e2e8f0', grad:'#94a3b8', shadow:'rgba(100,116,139,.25)',ring:'#cbd5e1', subj:'#1e293b', pageBg:'#eceef1', cardBorder:'rgba(100,116,139,.15)', cardShadow:'0 2px 8px rgba(100,116,139,.08)' },
+];
+
+function applyTheme(id) {
+  const t = THEMES.find(x => x.id === id) || THEMES[0];
+  const r = document.documentElement.style;
+  r.setProperty('--ac', t.ac);
+  r.setProperty('--ac-dark', t.dark);
+  r.setProperty('--ac-bg', t.bg);
+  r.setProperty('--ac-hover', t.hover);
+  r.setProperty('--ac-grad', t.grad);
+  r.setProperty('--ac-shadow', t.shadow);
+  r.setProperty('--ac-ring', t.ring);
+  r.setProperty('--ac-subj', t.subj);
+  r.setProperty('--page-bg', t.pageBg);
+  r.setProperty('--card-border', t.cardBorder);
+  r.setProperty('--card-shadow', t.cardShadow);
+  localStorage.setItem('wellyTheme', id);
+  document.querySelectorAll('.theme-swatch').forEach(s => {
+    s.classList.toggle('active', s.dataset.theme === id);
+  });
+  const nameEl = document.getElementById('themeName');
+  if (nameEl) nameEl.textContent = t.name;
+}
+
+function initThemeUI() {
+  const grid = document.getElementById('themeGrid');
+  THEMES.forEach(t => {
+    const el = document.createElement('div');
+    el.className = 'theme-swatch';
+    el.dataset.theme = t.id;
+    el.title = t.name;
+    el.style.background = `linear-gradient(135deg, ${t.ac}, ${t.grad})`;
+    el.innerHTML = '<span class="theme-swatch-check">&#10003;</span>';
+    el.onclick = () => applyTheme(t.id);
+    grid.appendChild(el);
+  });
+  applyTheme(localStorage.getItem('wellyTheme') || 'indigo');
+}
+
+function initSettingsUI() {
+  const overlay = document.getElementById('settingsOverlay');
+  document.getElementById('settingsToggle').onclick = () => overlay.classList.add('open');
+  document.getElementById('settingsClose').onclick = () => overlay.classList.remove('open');
+  overlay.onclick = (e) => { if (e.target === overlay) overlay.classList.remove('open'); };
+}
+
+// ─── 初始化 & 事件 ─────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+
+  initThemeUI();
+  initSettingsUI();
+
+  // 載入 localStorage 中的署名
+  const savedName = localStorage.getItem('wellySignoff') || '';
+  const nameInput = document.getElementById('defaultName');
+  nameInput.value = savedName;
+  if (savedName) document.getElementById('f_sg').value = savedName;
+
+  // 關鍵字按 Enter 自動加頓號
+  document.getElementById('f_kw').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' && !e.isComposing) {
+      e.preventDefault();
+      const val = this.value.trimEnd();
+      if (val && !val.endsWith('、')) {
+        this.value = val + '、';
+      }
+      this.dispatchEvent(new Event('input'));
+    }
+  });
+
+  // 關鍵字輸入時自動更新篇數
+  document.getElementById('f_kw').addEventListener('input', function() {
+    const parts = this.value.split(/[、，,]+/).map(s => s.trim()).filter(Boolean);
+    if (parts.length > 0) {
+      const countEl = document.getElementById('f_count');
+      if (countEl) countEl.value = parts.length;
+      // 大改情境：也根據關鍵字數更新連結列數
+      const sc = SC[document.getElementById('scenarioSelect').value];
+      if (sc && sc.links) {
+        updateLinkRows(parts.length);
+      }
+    }
+  });
+
+  // 客戶名稱變動時自動更新文檔名稱
+  function updateDocName() {
+    const docEl = document.getElementById('f_docName');
+    if (document.getElementById('docSection').classList.contains('hidden')) return;
+    const now = new Date();
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const dd = String(now.getDate()).padStart(2, '0');
+    const cn = document.getElementById('f_cn').value.trim() || 'OO';
+    docEl.value = `${mm}/${dd} ${cn} SEO 專文優化調整`;
+  }
+  document.getElementById('f_cn').addEventListener('input', updateDocName);
+
+  // 署名設定儲存
+  nameInput.addEventListener('input', () => {
+    const n = nameInput.value.trim();
+    localStorage.setItem('wellySignoff', n);
+    document.getElementById('f_sg').value = n;
+  });
+
+  // 情境切換
+  document.getElementById('scenarioSelect').addEventListener('change', function() {
+    const id = this.value;
+    const sc = SC[id];
+    const badges = document.getElementById('scenarioBadges');
+
+    badges.innerHTML = '';
+    document.getElementById('formCard').classList.toggle('hidden', !sc);
+    document.getElementById('outputSection').classList.add('hidden');
+
+    if (!sc) return;
+
+    // Badges
+    if (sc.email) badges.innerHTML += `<span class="badge" style="color:#3b82f6;border-color:#93c5fd;background:#eff6ff">📧 Email</span>`;
+    else          badges.innerHTML += `<span class="badge" style="color:#94a3b8;border-color:#cbd5e1;background:#f8fafc">Email 不寄</span>`;
+    if (sc.line)  badges.innerHTML += `<span class="badge" style="color:#22c55e;border-color:#86efac;background:#f0fdf4">💬 LINE</span>`;
+    else          badges.innerHTML += `<span class="badge" style="color:#94a3b8;border-color:#cbd5e1;background:#f8fafc">LINE 不寄</span>`;
+
+    // 欄位顯示
+    document.getElementById('wrap_kw').classList.toggle('hidden', !!sc.noKw);
+    document.getElementById('wrap_count').classList.toggle('hidden', !!sc.noCount);
+    document.getElementById('f_count').classList.toggle('hidden', !!sc.noKw);
+    document.getElementById('f_count_select').classList.toggle('hidden', !sc.noKw);
+    if (sc.noKw) {
+      document.getElementById('f_count').value = document.getElementById('f_count_select').value;
+    }
+    document.getElementById('wrap_ver').classList.toggle('hidden', !sc.ver);
+    document.getElementById('wrap_dl').classList.toggle('hidden', !!sc.noDl);
+    document.getElementById('wrap_sg').classList.toggle('hidden', !sc.email);
+    document.getElementById('linkSection').classList.toggle('hidden', !sc.links);
+    document.getElementById('wrap_imgFolder').classList.toggle('hidden', !sc.imgFolder);
+    document.getElementById('metaSection').classList.toggle('hidden', !sc.meta);
+    document.getElementById('docSection').classList.toggle('hidden', !sc.doc);
+    if (sc.doc) {
+      // 自動帶入：MM/DD 客戶名稱 SEO 專文優化調整
+      const now = new Date();
+      const mm = String(now.getMonth() + 1).padStart(2, '0');
+      const dd = String(now.getDate()).padStart(2, '0');
+      const cn = document.getElementById('f_cn').value.trim() || 'OO';
+      document.getElementById('f_docName').value = `${mm}/${dd} ${cn} SEO 專文優化調整`;
+      document.getElementById('f_docLink').value = '';
+    }
+    document.getElementById('wrap_replyDl').classList.toggle('hidden', !sc.replyDl);
+    if (sc.replyDl) document.getElementById('f_replyDl').value = ''; // 清空讓使用者選
+
+    // 內容類型 checkbox：依情境只顯示合理選項
+    document.getElementById('wrap_contentType').classList.toggle('hidden', !sc.contentType);
+    const ctArchWrap     = document.getElementById('ct_arch').closest('label');
+    const ctArticleWrap  = document.getElementById('ct_article').closest('label');
+    const ctProductWrap  = document.getElementById('ct_product').closest('label');
+    const ctOptimizeWrap = document.getElementById('ct_optimize').closest('label');
+    if (sc.contentType && sc.ctAvail) {
+      ctArchWrap.classList.toggle('hidden',     !sc.ctAvail[0]);
+      ctArticleWrap.classList.toggle('hidden',   !sc.ctAvail[1]);
+      ctProductWrap.classList.toggle('hidden',   !sc.ctAvail[2]);
+      ctOptimizeWrap.classList.toggle('hidden',  !sc.ctAvail[3]);
+      document.getElementById('ct_arch').checked     = !!sc.ctDefaults[0];
+      document.getElementById('ct_article').checked   = !!sc.ctDefaults[1];
+      document.getElementById('ct_product').checked   = !!sc.ctDefaults[2];
+      document.getElementById('ct_optimize').checked  = !!sc.ctDefaults[3];
+    } else {
+      ctArchWrap.classList.add('hidden');
+      ctArticleWrap.classList.add('hidden');
+      ctProductWrap.classList.add('hidden');
+      ctOptimizeWrap.classList.add('hidden');
+      document.getElementById('ct_arch').checked = false;
+      document.getElementById('ct_article').checked = false;
+      document.getElementById('ct_product').checked = false;
+      document.getElementById('ct_optimize').checked = false;
+    }
+    // checkbox 變動時刷新連結列的類型標籤
+    document.querySelectorAll('#wrap_contentType input[type="checkbox"]').forEach(cb => {
+      cb.onchange = () => refreshLinkTypeLabels();
+    });
+
+    // 首次寄送 checkbox
+    document.getElementById('wrap_firstSend').classList.toggle('hidden', !sc.firstSend);
+    if (!sc.firstSend) document.getElementById('ct_firstSend').checked = false;
+
+    // 首三篇/第一次 checkbox
+    document.getElementById('wrap_firstThree').classList.toggle('hidden', !sc.firstThree);
+    if (!sc.firstThree) document.getElementById('ct_firstThree').checked = false;
+    else document.getElementById('ct_firstThree').checked = true;
+
+    // 上架選項 checkbox（文字先上架 / 附注意事項）
+    document.getElementById('wrap_pubOptions').classList.toggle('hidden', !sc.pubOptions);
+    if (!sc.pubOptions) {
+      document.getElementById('ct_textFirst').checked = false;
+      document.getElementById('ct_pubNotes').checked = false;
+    }
+
+    // 小改通知類型 radio
+    document.getElementById('wrap_potSmType').classList.toggle('hidden', !sc.potSmType);
+    if (sc.potSmType) {
+      document.querySelector('input[name="potSmType"][value="client"]').checked = true;
+      // radio 切換時動態調整欄位
+      const applyPotSmType = () => {
+        const t = (document.querySelector('input[name="potSmType"]:checked') || {}).value || 'client';
+        const hasEmail = t !== 'noemail';
+        const hasDl = t === 'client' || t === 'before';
+        const hasMeta = t !== 'noemail';
+        document.getElementById('wrap_dl').classList.toggle('hidden', !hasDl);
+        document.getElementById('wrap_sg').classList.toggle('hidden', !hasEmail);
+        document.getElementById('metaSection').classList.toggle('hidden', !hasMeta);
+        // 更新 badges
+        const badges = document.getElementById('scenarioBadges');
+        badges.innerHTML = '';
+        if (hasEmail) badges.innerHTML += `<span class="badge" style="color:#3b82f6;border-color:#93c5fd;background:#eff6ff">📧 Email</span>`;
+        else badges.innerHTML += `<span class="badge" style="color:#94a3b8;border-color:#cbd5e1;background:#f8fafc">Email 不寄</span>`;
+        badges.innerHTML += `<span class="badge" style="color:#22c55e;border-color:#86efac;background:#f0fdf4">💬 LINE</span>`;
+        if (hasMeta) {
+          const cnt = parseInt(document.getElementById('f_count').value) || 1;
+          currentMetaCount = 0;
+          updateMetaRows(cnt);
+        }
+      };
+      document.querySelectorAll('input[name="potSmType"]').forEach(r => { r.onchange = applyPotSmType; });
+      applyPotSmType();
+    }
+
+    // 大改通知類型 radio
+    document.getElementById('wrap_potLgType').classList.toggle('hidden', !sc.potLgType);
+    if (sc.potLgType) {
+      document.querySelector('input[name="potLgType"][value="after"]').checked = true;
+      const applyPotLgType = () => {
+        const lt = (document.querySelector('input[name="potLgType"]:checked') || {}).value || 'after';
+        const hasDl = lt === 'before' || lt === 'client';
+        document.getElementById('wrap_dl').classList.toggle('hidden', !hasDl);
+      };
+      document.querySelectorAll('input[name="potLgType"]').forEach(r => { r.onchange = applyPotLgType; });
+      applyPotLgType();
+    }
+
+    // 潛力關鍵字選項 checkbox（標題/前言/更新日期）
+    document.getElementById('wrap_potOptions').classList.toggle('hidden', !sc.potOptions);
+    if (sc.potOptions) {
+      document.getElementById('pot_chgTitle').checked = true;
+      document.getElementById('pot_chgDesc').checked = true;
+      document.getElementById('pot_updateDate').checked = true;
+      // checkbox 變動時重新產生 meta rows
+      ['pot_chgTitle','pot_chgDesc','pot_updateDate'].forEach(cid => {
+        document.getElementById(cid).onchange = () => {
+          const cnt = parseInt(document.getElementById('f_count').value) || 1;
+          updateMetaRows(cnt);
+        };
+      });
+    }
+
+    // 動態 Meta 欄位列數（非 potSmType 管理的情境）
+    if (sc.meta && !sc.potSmType) {
+      const cnt = parseInt(document.getElementById('f_count').value) || 1;
+      currentMetaCount = 0;
+      updateMetaRows(cnt);
+    }
+
+    // 不寄 Email checkbox + 動態切換
+    document.getElementById('wrap_noEmail').classList.toggle('hidden', !sc.canNoEmail);
+    document.getElementById('ct_noEmail').checked = false;
+    document.getElementById('ct_noEmail').onchange = function() {
+      const noE = this.checked;
+      document.getElementById('wrap_ver').classList.toggle('hidden', noE || !sc.ver);
+      document.getElementById('wrap_dl').classList.toggle('hidden', noE || !!sc.noDl);
+      document.getElementById('wrap_sg').classList.toggle('hidden', noE || !sc.email);
+      document.getElementById('linkSection').classList.toggle('hidden', noE || !sc.links);
+      document.getElementById('wrap_replyDl').classList.toggle('hidden', !noE);
+      if (noE) document.getElementById('f_replyDl').value = '';
+      // 更新 badges
+      const badges = document.getElementById('scenarioBadges');
+      badges.innerHTML = '';
+      if (!noE && sc.email) badges.innerHTML += `<span class="badge" style="color:#3b82f6;border-color:#93c5fd;background:#eff6ff">📧 Email</span>`;
+      else badges.innerHTML += `<span class="badge" style="color:#94a3b8;border-color:#cbd5e1;background:#f8fafc">Email 不寄</span>`;
+      if (sc.line) badges.innerHTML += `<span class="badge" style="color:#22c55e;border-color:#86efac;background:#f0fdf4">💬 LINE</span>`;
+    };
+
+    // 內部群組訊息欄位（pub_links 專用）
+    document.getElementById('wrap_groupMsg').classList.toggle('hidden', !sc.groupMsg);
+    if (sc.groupMsg) {
+      // 預設今天日期
+      const now = new Date();
+      const yyyy = now.getFullYear();
+      const mm = String(now.getMonth() + 1).padStart(2, '0');
+      const dd = String(now.getDate()).padStart(2, '0');
+      document.getElementById('f_pubDate').value = `${yyyy}-${mm}-${dd}`;
+    }
+
+    // 動態連結列數
+    if (sc.links) {
+      const count = parseInt(document.getElementById('f_count').value) || 3;
+      currentLinkCount = 0; // reset so updateLinkRows always rebuilds
+      updateLinkRows(count);
+    }
+
+    // 自動帶入署名
+    const saved = localStorage.getItem('wellySignoff') || '';
+    if (saved) document.getElementById('f_sg').value = saved;
+  });
+
+  // ── 截止日紀錄（有設截止日時自動送出）──
+  function logDeadline(scenarioId) {
+    if (!GAS_LOGGER_URL) return; // 尚未設定 API
+    const dl = document.getElementById('f_dl').value;
+    if (!dl) return; // 沒有截止日就不記錄
+
+    const scenarioEl = document.getElementById('scenarioSelect');
+    const scenarioLabel = scenarioEl.options[scenarioEl.selectedIndex].text;
+    const operator = localStorage.getItem('wellySignoff') || '';
+
+    const payload = {
+      operator: operator,
+      scenario: scenarioId,
+      scenarioLabel: scenarioLabel,
+      clientName: document.getElementById('f_cn').value.trim(),
+      contact: document.getElementById('f_ct').value.trim(),
+      keywords: document.getElementById('f_kw').value.trim(),
+      count: document.getElementById('f_count').value,
+      deadline: dl,
+      docName: document.getElementById('f_docName').value.trim(),
+    };
+
+    // 非同步送出，不 block 使用者操作
+    fetch(GAS_LOGGER_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+      mode: 'no-cors', // GAS 跨域限制
+    }).catch(() => {}); // 靜默失敗
+  }
+
+  // 生成
+  document.getElementById('genBtn').addEventListener('click', () => {
+    const id = document.getElementById('scenarioSelect').value;
+    if (!id) return;
+    const result = genWithHtml(id);
+
+    const emailCard = document.getElementById('emailCard');
+    const lineCard  = document.getElementById('lineCard');
+    const groupCard = document.getElementById('groupCard');
+
+    emailCard.classList.toggle('hidden', !result.email);
+    lineCard.classList.toggle('hidden',  !result.line);
+
+    if (result.email) {
+      document.getElementById('outSubject').textContent = result.subject || '';
+      // 用 HTML 渲染（保留超連結）
+      document.getElementById('outEmail').innerHTML = result.emailHtml || escH(result.email).replace(/\n/g,'<br>');
+      // 存純文字備用
+      document.getElementById('outEmail').dataset.plain = result.email;
+      document.getElementById('outEmail').dataset.subject = result.subject || '';
+    }
+    if (result.line) {
+      document.getElementById('outLine').textContent = '您好～\n\n' + result.line;
+    }
+    groupCard.classList.toggle('hidden', !result.groupMsg);
+    if (result.groupMsg) {
+      const groupEl = document.getElementById('outGroup');
+      groupEl.innerHTML = result.groupMsgHtml || escH(result.groupMsg).replace(/\n/g,'<br>');
+      groupEl.dataset.plain = result.groupMsg;
+    }
+
+    document.getElementById('outputSection').classList.remove('hidden');
+    setTimeout(() => document.getElementById('outputSection').scrollIntoView({behavior:'smooth', block:'start'}), 80);
+
+    // 有截止日時記錄 + 發 Slack 提醒
+    logDeadline(id);
+  });
+
+  // ── 複製 HTML 內容（用 contenteditable 暫存元素，不帶頁面背景色）──
+  function copyRichText(htmlStr, plainStr) {
+    return new Promise((resolve) => {
+      // 方法一：execCommand（在暫存元素上 select → copy，不含頁面 CSS）
+      const tmp = document.createElement('div');
+      tmp.setAttribute('contenteditable', 'true');
+      tmp.setAttribute('aria-hidden', 'true');
+      tmp.style.cssText = [
+        'position:fixed', 'top:-9999px', 'left:-9999px',
+        'width:600px', 'padding:0', 'margin:0',
+        'background:#ffffff', 'color:#333333',
+        'font-family:Arial,Helvetica,sans-serif',
+        'font-size:14px', 'line-height:1.8',
+        'pointer-events:none',
+      ].join(';');
+      tmp.innerHTML = htmlStr;
+      document.body.appendChild(tmp);
+      tmp.focus();
+      const range = document.createRange();
+      range.selectNodeContents(tmp);
+      const sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(range);
+      let ok = false;
+      try { ok = document.execCommand('copy'); } catch(_) {}
+      sel.removeAllRanges();
+      document.body.removeChild(tmp);
+      if (ok) { resolve(); return; }
+
+      // 方法二：ClipboardItem（fallback）
+      const wrapped = '<html><body style="background:#ffffff;margin:0;padding:0">'
+        + '<div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;'
+        + 'line-height:1.8;color:#333333;background:#ffffff">'
+        + htmlStr + '</div></body></html>';
+      navigator.clipboard.write([new ClipboardItem({
+        'text/html':  new Blob([wrapped],   {type:'text/html'}),
+        'text/plain': new Blob([plainStr],  {type:'text/plain'}),
+      })]).then(resolve).catch(() => {
+        navigator.clipboard.writeText(plainStr).then(resolve);
+      });
+    });
+  }
+
+  // 複製內文（不含主旨）
+  document.getElementById('copyEmailBtn').addEventListener('click', async function() {
+    const el = document.getElementById('outEmail');
+    const plain = el.dataset.plain || el.innerText;
+    const cleanHtml = el.innerHTML
+      .replace(/\s+class="[^"]*"/g, '');
+    await copyRichText(cleanHtml, plain);
+    this.classList.add('done'); const orig = this.textContent; this.textContent = '✅ 已複製';
+    setTimeout(() => { this.classList.remove('done'); this.textContent = orig; }, 2000);
+  });
+
+  // 複製主旨
+  document.getElementById('copySubjBtn').addEventListener('click', async function() {
+    const s = document.getElementById('outSubject').textContent;
+    await navigator.clipboard.writeText(s);
+    const orig = this.textContent; this.textContent = '✅';
+    setTimeout(() => { this.textContent = orig; }, 2000);
+  });
+
+  // 複製 LINE
+  document.getElementById('copyLineBtn').addEventListener('click', async function() {
+    await navigator.clipboard.writeText(document.getElementById('outLine').textContent);
+    this.classList.add('done'); const orig = this.textContent; this.textContent = '✅ 已複製';
+    setTimeout(() => { this.classList.remove('done'); this.textContent = orig; }, 2000);
+  });
+
+  // 複製內部群組（富文字，連結可點擊）
+  document.getElementById('copyGroupBtn').addEventListener('click', async function() {
+    const el = document.getElementById('outGroup');
+    const plain = el.dataset.plain || el.innerText;
+    const html = el.innerHTML.replace(/\s+class="[^"]*"/g, '');
+    await copyRichText(html, plain);
+    this.classList.add('done'); const orig = this.textContent; this.textContent = '✅ 已複製';
+    setTimeout(() => { this.classList.remove('done'); this.textContent = orig; }, 2000);
+  });
+
+  // ── 篇數變更時，自動更新連結列數 & Meta 列數 ──
+  document.getElementById('f_count').addEventListener('input', function() {
+    const sc = SC[document.getElementById('scenarioSelect').value];
+    if (sc && sc.links) updateLinkRows(parseInt(this.value) || 3);
+    if (sc && sc.meta) updateMetaRows(parseInt(this.value) || 1);
+  });
+  // 下拉篇數同步到隱藏的 number input
+  document.getElementById('f_count_select').addEventListener('change', function() {
+    document.getElementById('f_count').value = this.value;
+    const sc = SC[document.getElementById('scenarioSelect').value];
+    if (sc && sc.meta) updateMetaRows(parseInt(this.value) || 1);
+  });
+
+  // ── 關鍵字輸入時也同步更新連結列數 ──
+  document.getElementById('f_kw').addEventListener('input', function() {
+    const sc = SC[document.getElementById('scenarioSelect').value];
+    if (sc && sc.links) {
+      const count = parseInt(document.getElementById('f_count').value) || 3;
+      updateLinkRows(count);
+    }
+    if (sc && sc.meta) {
+      const count = parseInt(document.getElementById('f_count').value) || 1;
+      updateMetaRows(count);
+    }
+  });
+});
+
+// ─── 連結權限自動檢查 ─────────────────────────────────────────────
+// 原理：用 <img crossOrigin="anonymous"> 載入 Google CDN 縮圖
+// requireEdit: true → 文件需要「編輯者」權限；false → 只需「檢視者」
+// 從 URL 中擷取 Google Drive ID
+function extractGoogleId(url) {
+  const docM = url.match(/\/(document|spreadsheets|presentation)\/d\/([a-zA-Z0-9_-]+)/);
+  if (docM) return { type: 'doc', subtype: docM[1], id: docM[2] };
+  const fileM = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+  if (fileM) return { type: 'file', id: fileM[1] };
+  const folderM = url.match(/\/folders\/([a-zA-Z0-9_-]+)/);
+  if (folderM) return { type: 'folder', id: folderM[1] };
+  return null;
+}
+
+// GAS API 檢查（檔案 + 資料夾都適用）
+async function checkViaGAS(fileId, dot, requireEdit) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 12000);
+  const res = await fetch(`${GAS_PERMISSION_URL}?id=${fileId}`, {
+    signal: controller.signal, redirect: 'follow'
+  });
+  clearTimeout(timer);
+  const data = await res.json();
+
+  if (!data.ok) {
+    dot.className = 'link-status fail';
+    dot.title = '✗ ' + (data.error || '無法檢查');
+    return;
+  }
+
+  if (!data.isPublic && !data.isDomain) {
+    dot.className = 'link-status fail';
+    dot.title = requireEdit
+      ? '✗ 權限未開啟\n請設為「知道連結的人 — 編輯者」'
+      : '✗ 權限未開啟\n請設為「知道連結的人 — 檢視者」';
+    return;
+  }
+
+  // 有開放，但需檢查是否為編輯權限
+  if (requireEdit && data.permission !== 'EDIT') {
+    dot.className = 'link-status warn';
+    dot.title = '⚠ 目前為「檢視者」\n請改為「知道連結的人 — 編輯者」';
+    return;
+  }
+
+  dot.className = 'link-status ok';
+  dot.title = requireEdit
+    ? '✓ 已開啟編輯權限'
+    : '✓ 已開啟檢視權限';
+}
+
+// Proxy 檢查（僅文件，不支援資料夾）
+async function checkViaProxy(info, dot, requireEdit) {
+  let checkUrl;
+  if (info.type === 'doc') {
+    if (info.subtype === 'document') checkUrl = `https://docs.google.com/document/d/${info.id}/export?format=txt`;
+    else if (info.subtype === 'spreadsheets') checkUrl = `https://docs.google.com/spreadsheets/d/${info.id}/export?format=csv`;
+    else checkUrl = `https://docs.google.com/presentation/d/${info.id}/export/txt`;
+  } else {
+    checkUrl = `https://drive.google.com/uc?export=download&id=${info.id}`;
+  }
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 10000);
+  const proxyUrl = 'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(checkUrl);
+  const res = await fetch(proxyUrl, { signal: controller.signal });
+  clearTimeout(timer);
+
+  if (!res.ok) {
+    dot.className = 'link-status fail';
+    dot.title = '✗ 無法存取，請確認連結與權限';
+    return;
+  }
+  const text = await res.text();
+  const isLoginPage = text.includes('accounts.google.com') || text.includes('ServiceLogin') || text.includes('signin/identifier');
+  const isHtmlError = text.trimStart().startsWith('<!DOCTYPE') || text.trimStart().startsWith('<html');
+  const isDenied = text.includes('denied') || text.includes('not authorized') || text.length < 5;
+  if (isLoginPage || isHtmlError || isDenied) {
+    dot.className = 'link-status fail';
+    dot.title = requireEdit
+      ? '✗ 權限未開啟\n請設為「知道連結的人 — 編輯者」'
+      : '✗ 權限未開啟\n請設為「知道連結的人 — 檢視者」';
+  } else {
+    dot.className = 'link-status ok';
+    dot.title = requireEdit
+      ? '✓ 連結可存取\n⚠ 請確認已設為「編輯者」而非「檢視者」'
+      : '✓ 連結已開啟檢視權限';
+  }
+}
+
+async function checkGoogleAccess(url, dot, requireEdit) {
+  if (!url) { dot.className = 'link-status'; dot.title = ''; return; }
+
+  const info = extractGoogleId(url);
+  if (!info) { dot.className = 'link-status'; dot.title = '非 Google 文件連結'; return; }
+
+  dot.className = 'link-status checking'; dot.title = '檢查中…';
+
+  try {
+    // 有 GAS → 全部走 GAS（資料夾也能查）
+    if (GAS_PERMISSION_URL) {
+      await checkViaGAS(info.id, dot, requireEdit);
+      return;
+    }
+    // 沒有 GAS → 資料夾無法檢查，文件走 proxy
+    if (info.type === 'folder') {
+      dot.className = 'link-status'; dot.title = '需設定 GAS API 才能檢查資料夾權限';
+      return;
+    }
+    await checkViaProxy(info, dot, requireEdit);
+  } catch(e) {
+    dot.className = 'link-status fail';
+    dot.title = e.name === 'AbortError' ? '✗ 檢查逾時，請確認連結是否正確' : '✗ 檢查失敗，請確認網路連線';
+  }
+}
+
+function checkLinkAccess(n) {
+  const url = document.getElementById('f_l' + n).value.trim();
+  const dot = document.getElementById('ls' + n);
+  checkGoogleAccess(url, dot, true);
+}
+
+function checkImgFolderAccess() {
+  const url = document.getElementById('f_imgFolder').value.trim();
+  const dot = document.getElementById('ls_imgFolder');
+  // 配圖資料夾只需要檢視權限
+  checkGoogleAccess(url, dot, false);
+}
+
+function checkDocLinkAccess() {
+  const url = document.getElementById('f_docLink').value.trim();
+  const dot = document.getElementById('ls_docLink');
+  // 文檔只要有開放（檢視或編輯）就顯示綠燈
+  checkGoogleAccess(url, dot, false);
+}
+
+// ─── 聯絡人快捷鍵 ──────────────────────────────────────────────────
+function fillPartnerName() {
+  const cn = document.getElementById('f_cn').value.trim();
+  if (!cn) { alert('請先填寫客戶名稱'); return; }
+  document.getElementById('f_ct').value = cn + '的夥伴們';
+}
+
+// ─── 日期快捷鍵 ────────────────────────────────────────────────────
+function setDateShortcut(days) {
+  const d = new Date();
+  d.setDate(d.getDate() + days);
+  // 若落在週末則順延到下週一
+  if (d.getDay() === 6) d.setDate(d.getDate() + 2); // 六 → 一
+  if (d.getDay() === 0) d.setDate(d.getDate() + 1); // 日 → 一
+  // 轉成 YYYY-MM-DD
+  const iso = d.getFullYear() + '-'
+    + String(d.getMonth() + 1).padStart(2, '0') + '-'
+    + String(d.getDate()).padStart(2, '0');
+  document.getElementById('f_dl').value = iso;
+}
+
+</script>
+</body>
+</html>
