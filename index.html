@@ -1110,17 +1110,17 @@ function gen(id) {
       let remindLine = '';
       if (rt === 'review') {
         const after = clientDo
-          ? `若確認沒問題後，再麻煩貴司安排後續處理`
+          ? `若確認沒問題後，再麻煩貴司安排上架`
           : `若確認沒問題後，我們內部會儘速${nextStep}`;
         remindLine = `想跟您確認${kwFmt} ${v.count} 篇${cd}審核的狀況都還好嗎？\n\n${after}，希望可以在${v.replyDl}收到您的回覆，若有任何問題或不懂的地方，都可以隨時提出來跟我討論唷！`;
       } else if (rt === 'potSm') {
         const after = clientDo
-          ? `若確認沒問題後，再麻煩貴司安排調整上架`
+          ? `若確認沒問題後，再麻煩貴司安排上架`
           : `若確認沒問題後，我們這邊會儘速進行調整上架`;
         remindLine = `想跟您確認${kwFmt} ${v.count} 篇潛力關鍵字調整（Meta 標題／描述）的部分，審核狀況都還好嗎？\n\n${after}，希望可以在${v.replyDl}收到您的回覆，若有任何問題都可以隨時提出來跟我討論唷！`;
       } else if (rt === 'potLg') {
         const after = clientDo
-          ? `若確認沒問題後，再麻煩貴司安排後續調整與上架`
+          ? `若確認沒問題後，再麻煩貴司安排上架`
           : `若確認沒問題後，我們這邊會儘速進行後續調整與上架`;
         remindLine = `想跟您確認${kwFmt} ${v.count} 篇潛力關鍵字調整的內容，審核狀況都還好嗎？\n\n${after}，希望可以在${v.replyDl}收到您的回覆，若有任何問題都可以隨時提出來跟我討論唷！`;
       } else if (rt === 'img') {
