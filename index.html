@@ -379,8 +379,8 @@
         <label style="font-size:13px;font-weight:600;color:#475569;white-space:nowrap">提醒類型</label>
         <div class="radio-pills">
           <label><input type="radio" name="remindType" value="review" checked>審稿</label>
-          <label><input type="radio" name="remindType" value="potSm">小改（潛力）</label>
-          <label><input type="radio" name="remindType" value="potLg">大改（潛力）</label>
+          <label><input type="radio" name="remindType" value="potSm">小改</label>
+          <label><input type="radio" name="remindType" value="potLg">大改</label>
           <label><input type="radio" name="remindType" value="img">圖片</label>
           <label><input type="radio" name="remindType" value="pub">上架</label>
           <label><input type="radio" name="remindType" value="textFirst">文字先上架確認</label>
@@ -413,11 +413,11 @@
     </div>
 
     <div class="grid" id="basicFields">
-      <div class="field">
+      <div class="field" id="wrap_cnField">
         <label>客戶名稱</label>
         <input type="text" id="f_cn" placeholder="例：OO診所" />
       </div>
-      <div class="field">
+      <div class="field" id="wrap_ctField">
         <label>聯絡人姓名</label>
         <input type="text" id="f_ct" placeholder="例：陳小姐" />
         <div class="date-shortcuts">
@@ -631,7 +631,7 @@ const SC = {
   // ctDefaults: 預設勾選狀態
   combo_send:          { email:true,  line:true,  links:true,  ver:false, meta:false, doc:false, noDl:false, noCount:false, contentType:true,  ctAvail:[1,1,1,1], ctDefaults:[0,0,0,0], firstSend:true },
   combo_rev:           { email:true,  line:true,  links:true,  ver:true,  meta:false, doc:false, noDl:false, noCount:false, contentType:true,  ctAvail:[1,1,1,1], ctDefaults:[0,1,0,0], canNoEmail:true },
-  client_remind:       { email:false, line:true,  links:false, ver:false, meta:false, doc:false, noDl:true,  noCount:false, replyDl:true, contentType:true,  ctAvail:[1,1,1,1], ctDefaults:[0,1,0,0], remindType:true, firstThree:true },
+  client_remind:       { email:false, line:true,  links:false, ver:false, meta:false, doc:false, noDl:true,  noCount:false, replyDl:true, contentType:true,  ctAvail:[1,1,1,1], ctDefaults:[0,1,0,0], remindType:true, firstThree:true, noCnCt:true },
   img_review:          { email:true,  line:true,  links:true,  ver:false, meta:false, doc:false, noDl:false, noCount:false },
   img_during_review:   { email:false, line:true,  links:false, ver:false, meta:false, doc:false, noDl:true,  noCount:false },
   client_pub:          { email:true,  line:true,  links:true,  ver:false, meta:false, doc:false, noDl:false, noCount:true,  contentType:true,  ctAvail:[0,1,1,1], ctDefaults:[0,1,0,0], imgFolder:true },
@@ -1485,6 +1485,8 @@ document.addEventListener('DOMContentLoaded', () => {
     else          badges.innerHTML += `<span class="badge" style="color:#94a3b8;border-color:#cbd5e1;background:#f8fafc">LINE 不寄</span>`;
 
     // 欄位顯示
+    document.getElementById('wrap_cnField').classList.toggle('hidden', !!sc.noCnCt);
+    document.getElementById('wrap_ctField').classList.toggle('hidden', !!sc.noCnCt);
     document.getElementById('wrap_kw').classList.toggle('hidden', !!sc.noKw);
     document.getElementById('wrap_count').classList.toggle('hidden', !!sc.noCount);
     document.getElementById('f_count').classList.toggle('hidden', !!sc.noKw);
@@ -1611,11 +1613,12 @@ document.addEventListener('DOMContentLoaded', () => {
         // 只有審稿和上架需要內容類型
         document.getElementById('wrap_contentType').classList.toggle('hidden', !needCt);
         // 上架不會有架構
+        const archLabel = document.getElementById('ct_arch').closest('label');
         if (isPub) {
           document.getElementById('ct_arch').checked = false;
-          document.getElementById('ct_arch').parentElement.style.display = 'none';
-        } else {
-          document.getElementById('ct_arch').parentElement.style.display = '';
+          archLabel.classList.add('hidden');
+        } else if (needCt) {
+          archLabel.classList.remove('hidden');
         }
         document.getElementById('wrap_replyDl').classList.toggle('hidden', isTextFirst);
         document.getElementById('wrap_firstThree').classList.toggle('hidden', !isTextFirst);
