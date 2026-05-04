@@ -6,7 +6,7 @@
 <title>客戶通知生成器 · Welly</title>
 <style>
   :root {
-    --ac: #6366f1; --ac-dark: #4f46e5; --ac-bg: #eef2ff; --ac-hover: #f1f0ff;
+    --ac: #7e9ab5; --ac-dark: #5f7f9a; --ac-bg: #f0f4f7; --ac-hover: #e4ecf2;
     --ac-grad: #8b5cf6; --ac-shadow: rgba(99,102,241,.3); --ac-ring: #c7c3f9;
     --ac-subj: #3730a3;
     --page-bg: #f0f1f6; --card-border: transparent; --card-shadow: 0 1px 5px rgba(0,0,0,.07);
@@ -1315,16 +1315,16 @@ function genWithHtml(id) {
 
 // ─── 主題系統 ──────────────────────────────────────────────────────
 const THEMES = [
-  { id:'indigo',  name:'靛藍',   ac:'#6366f1', dark:'#4f46e5', bg:'#eef2ff', hover:'#f1f0ff', grad:'#8b5cf6', shadow:'rgba(99,102,241,.3)',  ring:'#c7c3f9', subj:'#3730a3', pageBg:'#eeeef6', cardBorder:'rgba(99,102,241,.12)', cardShadow:'0 2px 8px rgba(99,102,241,.08)' },
-  { id:'violet',  name:'紫羅蘭', ac:'#8b5cf6', dark:'#7c3aed', bg:'#f5f3ff', hover:'#ede9fe', grad:'#a78bfa', shadow:'rgba(139,92,246,.3)',  ring:'#c4b5fd', subj:'#5b21b6', pageBg:'#f0edf8', cardBorder:'rgba(139,92,246,.12)', cardShadow:'0 2px 8px rgba(139,92,246,.08)' },
-  { id:'rose',    name:'玫瑰',   ac:'#f43f5e', dark:'#e11d48', bg:'#fff1f2', hover:'#ffe4e6', grad:'#fb7185', shadow:'rgba(244,63,94,.25)',  ring:'#fda4af', subj:'#9f1239', pageBg:'#f6eeed', cardBorder:'rgba(244,63,94,.12)',  cardShadow:'0 2px 8px rgba(244,63,94,.06)' },
-  { id:'coral',   name:'珊瑚',   ac:'#f97316', dark:'#ea580c', bg:'#fff7ed', hover:'#ffedd5', grad:'#fb923c', shadow:'rgba(249,115,22,.25)', ring:'#fdba74', subj:'#9a3412', pageBg:'#f5f0eb', cardBorder:'rgba(249,115,22,.12)', cardShadow:'0 2px 8px rgba(249,115,22,.06)' },
-  { id:'amber',   name:'琥珀',   ac:'#d97706', dark:'#b45309', bg:'#fffbeb', hover:'#fef3c7', grad:'#f59e0b', shadow:'rgba(217,119,6,.25)',  ring:'#fcd34d', subj:'#92400e', pageBg:'#f5f2ea', cardBorder:'rgba(217,119,6,.12)',  cardShadow:'0 2px 8px rgba(217,119,6,.06)' },
-  { id:'emerald', name:'翡翠',   ac:'#10b981', dark:'#059669', bg:'#ecfdf5', hover:'#d1fae5', grad:'#34d399', shadow:'rgba(16,185,129,.25)', ring:'#6ee7b7', subj:'#065f46', pageBg:'#ebf3ef', cardBorder:'rgba(16,185,129,.12)', cardShadow:'0 2px 8px rgba(16,185,129,.06)' },
-  { id:'teal',    name:'湖水藍', ac:'#14b8a6', dark:'#0d9488', bg:'#f0fdfa', hover:'#ccfbf1', grad:'#2dd4bf', shadow:'rgba(20,184,166,.25)', ring:'#5eead4', subj:'#115e59', pageBg:'#ebf2f1', cardBorder:'rgba(20,184,166,.12)', cardShadow:'0 2px 8px rgba(20,184,166,.06)' },
-  { id:'sky',     name:'天空藍', ac:'#0ea5e9', dark:'#0284c7', bg:'#f0f9ff', hover:'#e0f2fe', grad:'#38bdf8', shadow:'rgba(14,165,233,.25)', ring:'#7dd3fc', subj:'#075985', pageBg:'#eaf0f5', cardBorder:'rgba(14,165,233,.12)', cardShadow:'0 2px 8px rgba(14,165,233,.06)' },
-  { id:'sakura',  name:'櫻花粉', ac:'#ec4899', dark:'#db2777', bg:'#fdf2f8', hover:'#fce7f3', grad:'#f472b6', shadow:'rgba(236,72,153,.25)', ring:'#f9a8d4', subj:'#9d174d', pageBg:'#f5edf2', cardBorder:'rgba(236,72,153,.12)', cardShadow:'0 2px 8px rgba(236,72,153,.06)' },
-  { id:'slate',   name:'石墨',   ac:'#64748b', dark:'#475569', bg:'#f1f5f9', hover:'#e2e8f0', grad:'#94a3b8', shadow:'rgba(100,116,139,.25)',ring:'#cbd5e1', subj:'#1e293b', pageBg:'#eceef1', cardBorder:'rgba(100,116,139,.15)', cardShadow:'0 2px 8px rgba(100,116,139,.08)' },
+  { id:'dusty-blue',  name:'霧藍',   ac:'#7e9ab5', dark:'#5f7f9a', bg:'#f0f4f7', hover:'#e4ecf2', grad:'#97b1c7', shadow:'rgba(126,154,181,.2)',  ring:'#b8ced9', subj:'#3d5a73', pageBg:'#edf1f4', cardBorder:'rgba(126,154,181,.12)', cardShadow:'0 2px 8px rgba(126,154,181,.08)' },
+  { id:'dusty-rose',  name:'乾燥玫瑰', ac:'#c4908a', dark:'#a87069', bg:'#f8f1f0', hover:'#f2e6e4', grad:'#d4a8a3', shadow:'rgba(196,144,138,.2)',  ring:'#e0c4c0', subj:'#7a4d47', pageBg:'#f5efee', cardBorder:'rgba(196,144,138,.12)', cardShadow:'0 2px 8px rgba(196,144,138,.06)' },
+  { id:'sage',    name:'鼠尾草',   ac:'#8da588', dark:'#6e8b72', bg:'#f1f5f1', hover:'#e5ede6', grad:'#a4bca6', shadow:'rgba(141,165,136,.2)', ring:'#c0d3be', subj:'#4a6349', pageBg:'#edf2ed', cardBorder:'rgba(141,165,136,.12)', cardShadow:'0 2px 8px rgba(141,165,136,.06)' },
+  { id:'mauve',   name:'藕紫',   ac:'#9e8ba6', dark:'#7f6d8a', bg:'#f4f1f6', hover:'#ece7f0', grad:'#b5a3bc', shadow:'rgba(158,139,166,.2)', ring:'#cec3d4', subj:'#5a4a63', pageBg:'#f0edf3', cardBorder:'rgba(158,139,166,.12)', cardShadow:'0 2px 8px rgba(158,139,166,.06)' },
+  { id:'warm-sand', name:'暖沙',   ac:'#b5a08a', dark:'#96816a', bg:'#f6f3ef', hover:'#efebe4', grad:'#c7b6a3', shadow:'rgba(181,160,138,.2)', ring:'#d8cdc0', subj:'#6b5740', pageBg:'#f3f0ec', cardBorder:'rgba(181,160,138,.12)', cardShadow:'0 2px 8px rgba(181,160,138,.06)' },
+  { id:'mist',    name:'薄霧灰', ac:'#8e9aab', dark:'#6e7e91', bg:'#f1f3f6', hover:'#e6eaef', grad:'#a7b2c0', shadow:'rgba(142,154,171,.2)', ring:'#c1c9d4', subj:'#475769', pageBg:'#eceef2', cardBorder:'rgba(142,154,171,.15)', cardShadow:'0 2px 8px rgba(142,154,171,.08)' },
+  { id:'clay',    name:'陶土',   ac:'#b8917a', dark:'#9a7460', bg:'#f6f1ed', hover:'#eee7e0', grad:'#c9a793', shadow:'rgba(184,145,122,.2)', ring:'#d9c4b5', subj:'#6d4f3c', pageBg:'#f3eeea', cardBorder:'rgba(184,145,122,.12)', cardShadow:'0 2px 8px rgba(184,145,122,.06)' },
+  { id:'ocean',   name:'深海藍', ac:'#6b8e9e', dark:'#537580', bg:'#eff4f5', hover:'#e3ecef', grad:'#88a8b5', shadow:'rgba(107,142,158,.2)', ring:'#b0c8d0', subj:'#3a5a66', pageBg:'#ebf0f2', cardBorder:'rgba(107,142,158,.12)', cardShadow:'0 2px 8px rgba(107,142,158,.06)' },
+  { id:'sakura',  name:'櫻花粉', ac:'#c9929e', dark:'#ab7380', bg:'#f8f1f3', hover:'#f2e6ea', grad:'#d9acb5', shadow:'rgba(201,146,158,.2)', ring:'#e3c5cc', subj:'#7a4a56', pageBg:'#f5eef1', cardBorder:'rgba(201,146,158,.12)', cardShadow:'0 2px 8px rgba(201,146,158,.06)' },
+  { id:'olive',   name:'橄欖綠', ac:'#8a9a6e', dark:'#6e7f54', bg:'#f3f5ef', hover:'#e9ede2', grad:'#a3b18a', shadow:'rgba(138,154,110,.2)', ring:'#c2ceb1', subj:'#4a5638', pageBg:'#eff2eb', cardBorder:'rgba(138,154,110,.12)', cardShadow:'0 2px 8px rgba(138,154,110,.06)' },
 ];
 
 function applyTheme(id) {
@@ -1361,7 +1361,7 @@ function initThemeUI() {
     el.onclick = () => applyTheme(t.id);
     grid.appendChild(el);
   });
-  applyTheme(localStorage.getItem('wellyTheme') || 'indigo');
+  applyTheme(localStorage.getItem('wellyTheme') || 'dusty-blue');
 }
 
 function initSettingsUI() {
