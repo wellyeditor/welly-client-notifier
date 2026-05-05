@@ -625,7 +625,7 @@ const GAS_PERMISSION_URL = 'https://script.google.com/macros/s/AKfycby3bmEYUsboT
 // ─── 版本更新檢查 ─────────────────────────────────────────────────────
 const APP_VERSION = '20260505c';
 (function checkUpdate() {
-  fetch('https://wellyeditor.github.io/welly-client-notifier/version.json?_t=' + Date.now())
+  fetch('https://raw.githubusercontent.com/wellyeditor/welly-client-notifier/main/version.json?_t=' + Date.now())
     .then(r => r.json())
     .then(data => {
       if (data.version && data.version !== APP_VERSION) {
