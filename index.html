@@ -626,7 +626,7 @@ const GAS_PERMISSION_URL = 'https://script.google.com/macros/s/AKfycby3bmEYUsboT
 const APP_VERSION = '20260505e';
 (function checkUpdate() {
   const s = document.createElement('script');
-  s.src = 'https://raw.githubusercontent.com/wellyeditor/welly-client-notifier/main/version.js?_t=' + Date.now();
+  s.src = 'https://cdn.jsdelivr.net/gh/wellyeditor/welly-client-notifier@main/version.js?_t=' + Date.now();
   s.onload = () => {
     if (window.__LATEST_VERSION && window.__LATEST_VERSION !== APP_VERSION) {
       const bar = document.createElement('div');
