@@ -623,10 +623,10 @@
 const GAS_PERMISSION_URL = 'https://script.google.com/macros/s/AKfycby3bmEYUsboTf_qhU01u9zlmOyZioZLXpbZP0-n0E5MaRfB0ApRQ938tDdlXnfMzhew/exec';
 
 // ─── 版本更新檢查 ─────────────────────────────────────────────────────
-const APP_VERSION = '20260505b';
+const APP_VERSION = '20260505c';
 (function checkUpdate() {
-  const REPO_URL = 'https://raw.githubusercontent.com/wellyeditor/welly-client-notifier/main/index.html';
-  fetch(REPO_URL, { cache: 'no-store' })
+  const CHECK_URL = 'https://wellyeditor.github.io/welly-client-notifier/index.html?_t=' + Date.now();
+  fetch(CHECK_URL, { cache: 'no-store' })
     .then(r => r.text())
     .then(html => {
       const m = html.match(/APP_VERSION\s*=\s*'([^']+)'/);
