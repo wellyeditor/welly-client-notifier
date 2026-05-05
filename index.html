@@ -306,6 +306,7 @@
         <input type="text" class="settings-input" id="defaultName" placeholder="輸入你的名字，會自動帶入署名欄位" maxlength="20" />
       </div>
 
+
       <div class="settings-section">
         <div class="settings-section-title">主題配色</div>
         <div class="theme-grid" id="themeGrid"></div>
@@ -1465,6 +1466,7 @@ document.addEventListener('DOMContentLoaded', () => {
     localStorage.setItem('wellySignoff', n);
     document.getElementById('f_sg').value = n;
   });
+
 
   // 情境切換
   document.getElementById('scenarioSelect').addEventListener('change', function() {
