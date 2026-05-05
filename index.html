@@ -625,12 +625,10 @@ const GAS_PERMISSION_URL = 'https://script.google.com/macros/s/AKfycby3bmEYUsboT
 // ─── 版本更新檢查 ─────────────────────────────────────────────────────
 const APP_VERSION = '20260505c';
 (function checkUpdate() {
-  const CHECK_URL = 'https://wellyeditor.github.io/welly-client-notifier/index.html?_t=' + Date.now();
-  fetch(CHECK_URL, { cache: 'no-store' })
-    .then(r => r.text())
-    .then(html => {
-      const m = html.match(/APP_VERSION\s*=\s*'([^']+)'/);
-      if (m && m[1] !== APP_VERSION) {
+  fetch('https://wellyeditor.github.io/welly-client-notifier/version.json?_t=' + Date.now())
+    .then(r => r.json())
+    .then(data => {
+      if (data.version && data.version !== APP_VERSION) {
         const bar = document.createElement('div');
         bar.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:9999;background:#4f46e5;color:#fff;text-align:center;padding:10px 16px;font-size:14px;cursor:pointer;';
         bar.innerHTML = '🔄 有新版本可用，<b>點此重新整理</b>';
