@@ -308,6 +308,15 @@
 
 
       <div class="settings-section">
+        <div class="settings-section-title">稱呼標點</div>
+        <div class="radio-pills" id="greetingPuncPills">
+          <label><input type="radio" name="greetingPunc" value="～" checked>波浪號（～）</label>
+          <label><input type="radio" name="greetingPunc" value="，">逗號（，）</label>
+        </div>
+        <div style="font-size:12px;color:#94a3b8;margin-top:6px">套用到「您好」「您們好」快捷鍵及 LINE 訊息開頭</div>
+      </div>
+
+      <div class="settings-section">
         <div class="settings-section-title">主題配色</div>
         <div class="theme-grid" id="themeGrid"></div>
         <div class="theme-name" id="themeName"></div>
@@ -423,8 +432,8 @@
         <input type="text" id="f_ct" placeholder="例：陳小姐" />
         <div class="date-shortcuts">
           <button type="button" class="date-shortcut-btn" onclick="fillPartnerName()">（客戶名稱）夥伴們好</button>
-          <button type="button" class="date-shortcut-btn" onclick="document.getElementById('f_ct').value='您好～'">您好～</button>
-          <button type="button" class="date-shortcut-btn" onclick="document.getElementById('f_ct').value='您們好～'">您們好～</button>
+          <button type="button" class="date-shortcut-btn" id="btnHi1" onclick="document.getElementById('f_ct').value='您好' + getGreetPunc()">您好～</button>
+          <button type="button" class="date-shortcut-btn" id="btnHi2" onclick="document.getElementById('f_ct').value='您們好' + getGreetPunc()">您們好～</button>
         </div>
       </div>
       <div class="field span2 hidden" id="wrap_contentType">
@@ -618,6 +627,11 @@
 </div>
 
 <script>
+// ─── 稱呼標點 helper ─────────────────────────────────────────────────
+function getGreetPunc() {
+  return localStorage.getItem('wellyGreetPunc') || '～';
+}
+
 // ─── GAS 權限檢查 API ────────────────────────────────────────────────
 // 部署 GAS 後，將 Web App URL 貼到這裡（見 gas-permission-checker.js）
 const GAS_PERMISSION_URL = 'https://script.google.com/macros/s/AKfycby3bmEYUsboTf_qhU01u9zlmOyZioZLXpbZP0-n0E5MaRfB0ApRQ938tDdlXnfMzhew/exec';
@@ -991,8 +1005,9 @@ function buildMetaBlock(items, isAfter, chgTitle, chgDesc) {
 function gen(id) {
   const v = vals();
 
-  // 稱呼 & 問候語（「您好～」「您們好～」直接當開頭，不再加「您好：」）
-  const isDirectGreeting = v.ct.endsWith('～');
+  // 稱呼 & 問候語（「您好～」「您好，」直接當開頭，不再加「您好：」）
+  const gp = getGreetPunc();
+  const isDirectGreeting = v.ct.endsWith('～') || v.ct.endsWith('，');
   const hi = isDirectGreeting ? v.ct : `${v.ct} 您好：`;
   const dearHi = isDirectGreeting ? v.ct : `Dear ${v.ct} 您好：`;
 
@@ -1467,6 +1482,22 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('f_sg').value = n;
   });
 
+  // 稱呼標點設定
+  const savedPunc = localStorage.getItem('wellyGreetPunc') || '～';
+  document.querySelector(`input[name="greetingPunc"][value="${savedPunc}"]`).checked = true;
+  function updateGreetBtnLabels() {
+    const p = getGreetPunc();
+    document.getElementById('btnHi1').textContent = '您好' + p;
+    document.getElementById('btnHi2').textContent = '您們好' + p;
+  }
+  updateGreetBtnLabels();
+  document.querySelectorAll('input[name="greetingPunc"]').forEach(r => {
+    r.addEventListener('change', () => {
+      localStorage.setItem('wellyGreetPunc', r.value);
+      updateGreetBtnLabels();
+    });
+  });
+
 
   // 情境切換
   document.getElementById('scenarioSelect').addEventListener('change', function() {
@@ -1756,7 +1787,7 @@ document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('outEmail').dataset.subject = result.subject || '';
     }
     if (result.line) {
-      document.getElementById('outLine').textContent = '您好～\n\n' + result.line;
+      document.getElementById('outLine').textContent = '您好' + getGreetPunc() + '\n\n' + result.line;
     }
     groupCard.classList.toggle('hidden', !result.groupMsg);
     if (result.groupMsg) {
