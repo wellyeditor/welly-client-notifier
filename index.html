@@ -992,11 +992,11 @@ function buildMetaBlock(items, isAfter, chgTitle, chgDesc) {
     parts.push(`核心關鍵字：${m.kw || '【關鍵字】'}`);
     if (chgTitle) {
       parts.push(`原標題及 SEO 標題（Meta Title）：${m.oTitle || '【原標題】'}`);
-      parts.push(`${isAfter ? '現' : ''}標題及 SEO 標題（Meta Title）${isAfter ? '' : '請改為'}：${m.nTitle || '【新標題】'}`);
+      parts.push(`${isAfter ? '現' : ''}標題及 SEO 標題（Meta Title）${isAfter ? '' : '預計調整為'}：${m.nTitle || '【新標題】'}`);
     }
     if (chgDesc) {
       parts.push(`原前言及 SEO 描述（Meta Description）：${m.oDesc || '【原描述】'}`);
-      parts.push(`${isAfter ? '現' : ''}前言及 SEO 描述（Meta Description）${isAfter ? '' : '請改為'}：${m.nDesc || '【新描述】'}`);
+      parts.push(`${isAfter ? '現' : ''}前言及 SEO 描述（Meta Description）${isAfter ? '' : '預計調整為'}：${m.nDesc || '【新描述】'}`);
     }
     return parts.join('\n');
   }).join('\n\n');
@@ -1344,13 +1344,13 @@ function genWithHtml(id) {
         h += '<ul style="margin:6px 0 16px;padding-left:22px">';
         if (v.chgTitle) {
           const labelNew = isAfterType ? '現' : '';
-          const verbNew = isAfterType ? '' : '請改為';
+          const verbNew = isAfterType ? '' : '預計調整為';
           h += `<li style="margin:8px 0">原標題及 SEO 標題（Meta Title）：${escH(m.oTitle || '【原標題】')}</li>`;
           h += `<li style="margin:8px 0">${labelNew}標題及 SEO 標題（Meta Title）${verbNew}：${escH(m.nTitle || '【新標題】')}</li>`;
         }
         if (v.chgDesc) {
           const labelNew = isAfterType ? '現' : '';
-          const verbNew = isAfterType ? '' : '請改為';
+          const verbNew = isAfterType ? '' : '預計調整為';
           h += `<li style="margin:8px 0">原前言及 SEO 描述（Meta Description）：${escH(m.oDesc || '【原描述】')}</li>`;
           h += `<li style="margin:8px 0">${labelNew}前言及 SEO 描述（Meta Description）${verbNew}：${escH(m.nDesc || '【新描述】')}</li>`;
         }
