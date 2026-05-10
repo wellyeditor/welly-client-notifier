@@ -1247,9 +1247,9 @@ function gen(id) {
         ? `${groupHeader}\n${groupLines.join('\n')}\n\nCRM：${v.crmLink}`
         : `${groupHeader}\n${groupLines.join('\n')}`;
       const crmHtml = v.crmLink
-        ? `<a href="${escH(v.crmLink)}" style="color:#1a56db;text-decoration:underline">${escH(crmDisplay)}</a>`
-        : escH(crmDisplay);
-      const groupHtmlHeader = `${escH(pubDateFmt)}【${crmHtml}】上架 ${escH(v.count)} 篇文章：`;
+        ? `<a href="${escH(v.crmLink)}" style="color:#1a56db;text-decoration:underline;font-weight:bold">【${escH(crmDisplay)}】</a>`
+        : `【${escH(crmDisplay)}】`;
+      const groupHtmlHeader = `${escH(pubDateFmt)}${crmHtml}上架 ${escH(v.count)} 篇文章：`;
       const groupHtml = `${groupHtmlHeader}<br>${groupHtmlLines.join('<br>')}`;
 
       return {
