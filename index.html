@@ -958,6 +958,12 @@ function applyEmailFormatting(html) {
     html = html.split(e).join(`<strong style="color:#c0392b">${e}</strong>`);
   });
 
+  // 截止日期標色（藍色加粗）— 適用所有情境
+  html = html.replace(/(希望能於|希望能在|希望您可以在|收到您完成調整的通知，\n|希望可以在)\s*(<br>)?/g, (m) => m);
+  // 匹配各種截止日期格式：YYYY/MM/DD、MM/DD、今天下班前、明天下班前 等
+  html = html.replace(/((?:於|在)\s*)(\d{4}\/\d{1,2}\/\d{1,2}|\d{1,2}\/\d{1,2}\/\d{1,2}|\d{1,2}\/\d{1,2}|今天下班前|明天下班前)(\s*(?:前|收到))/g,
+    '$1<strong style="color:#2980b9">$2</strong>$3');
+
   // 「客戶自行上架文章之注意事項」→ 超連結
   const notesText = escH('客戶自行上架文章之注意事項');
   const notesUrl = 'https://docs.google.com/document/d/1z7CvV1qqp-GrgArzOB5Qb-XtRC4Timp8z6jPN0nwrf4/edit#heading=h.va4qkums8p4p';
@@ -1346,13 +1352,13 @@ function genWithHtml(id) {
           const labelNew = isAfterType ? '現' : '';
           const verbNew = isAfterType ? '' : '預計調整為';
           h += `<li style="margin:8px 0">原標題及 SEO 標題（Meta Title）：${escH(m.oTitle || '【原標題】')}</li>`;
-          h += `<li style="margin:8px 0">${labelNew}標題及 SEO 標題（Meta Title）${verbNew}：${escH(m.nTitle || '【新標題】')}</li>`;
+          h += `<li style="margin:8px 0"><strong style="color:#2980b9">${labelNew}標題及 SEO 標題（Meta Title）${verbNew}：</strong>${escH(m.nTitle || '【新標題】')}</li>`;
         }
         if (v.chgDesc) {
           const labelNew = isAfterType ? '現' : '';
           const verbNew = isAfterType ? '' : '預計調整為';
           h += `<li style="margin:8px 0">原前言及 SEO 描述（Meta Description）：${escH(m.oDesc || '【原描述】')}</li>`;
-          h += `<li style="margin:8px 0">${labelNew}前言及 SEO 描述（Meta Description）${verbNew}：${escH(m.nDesc || '【新描述】')}</li>`;
+          h += `<li style="margin:8px 0"><strong style="color:#2980b9">${labelNew}前言及 SEO 描述（Meta Description）${verbNew}：</strong>${escH(m.nDesc || '【新描述】')}</li>`;
         }
         h += '</ul>';
         return h;
