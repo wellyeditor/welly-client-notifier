@@ -1020,6 +1020,7 @@ function gen(id) {
   const isDirectGreeting = v.ct.endsWith('～') || v.ct.endsWith('，');
   const hi = isDirectGreeting ? v.ct : `${v.ct} 您好：`;
   const dearHi = isDirectGreeting ? v.ct : `Dear ${v.ct} 您好：`;
+  const selfIntro = v.isFirstSend ? `\n\n我是 Welly SEO 的內容編輯${v.sg}，` : '\n\n';
 
   // 關鍵字拆分 → 用於文章名稱 & 格式化顯示
   const kwParts = v.kw.split(/[、，,]+/).map(s => s.trim()).filter(Boolean);
@@ -1086,8 +1087,8 @@ function gen(id) {
   switch(id) {
     case 'combo_send': {
       // 有勾架構 → 架構模板語氣；沒勾 → 文章模板語氣
-      const archEmail = `${dearHi}\n\n我們內部團隊已根據使用者的搜尋意圖分析，以及核心與長尾關鍵字的搜尋量、競爭度、搜尋趨勢等調查，依照 Google SEO 規範安排好${kwFmt} ${v.count} 篇${cd}。\n\n架構階段的內容不是完整最終文字，我們在每份文件中皆有詳細的【架構審稿提醒】，請您於閱讀後再進行審稿，此階段的審稿主要需請您協助的會是：\n\n1. 內文段落撰寫方向是否 ok\n2. 補充相關專業資訊或案例給我們\n3. 提供您專業領域必須留意的撰寫注意事項\n\n文件請參考以下連結：\n${lb}${productNote}${imgLaterNote}\n\n希望能於 ${v.dl} 前收到您的回覆，感謝！\n\n${v.sg}`;
-      const articleEmail = `${dearHi}\n\n${kwFmt} ${v.count} 篇 SEO ${cd}已完成，再麻煩您抽空進行確認，關於審稿的方式與注意事項請幫我們參考下列提供的文件檔案最上方，有詳細的【文章審稿說明】。${productNote}\n\n${lb}\n\n也須請留意，由於編撰文章花費時間長，我們僅提供 1~2 次的文章修改額度，再請盡量幫我們做好文章內容的修正建議唷！感謝！\n\n審核完畢後煩請詳讀各文件檔最下方的提醒文字，完成狀態勾選後通知我們，以方便我們開始著手為貴公司調整或上架。${imgLaterNote}\n\n希望您能協助於 ${v.dl} 前完成審稿回覆，感謝！\n\n${v.sg}`;
+      const archEmail = `${dearHi}${selfIntro}我們內部團隊已根據使用者的搜尋意圖分析，以及核心與長尾關鍵字的搜尋量、競爭度、搜尋趨勢等調查，依照 Google SEO 規範安排好${kwFmt} ${v.count} 篇${cd}。\n\n架構階段的內容不是完整最終文字，我們在每份文件中皆有詳細的【架構審稿提醒】，請您於閱讀後再進行審稿，此階段的審稿主要需請您協助的會是：\n\n1. 內文段落撰寫方向是否 ok\n2. 補充相關專業資訊或案例給我們\n3. 提供您專業領域必須留意的撰寫注意事項\n\n文件請參考以下連結：\n${lb}${productNote}${imgLaterNote}\n\n希望能於 ${v.dl} 前收到您的回覆，感謝！\n\n${v.sg}`;
+      const articleEmail = `${dearHi}${selfIntro}${kwFmt} ${v.count} 篇 SEO ${cd}已完成，再麻煩您抽空進行確認，關於審稿的方式與注意事項請幫我們參考下列提供的文件檔案最上方，有詳細的【文章審稿說明】。${productNote}\n\n${lb}\n\n也須請留意，由於編撰文章花費時間長，我們僅提供 1~2 次的文章修改額度，再請盡量幫我們做好文章內容的修正建議唷！感謝！\n\n審核完畢後煩請詳讀各文件檔最下方的提醒文字，完成狀態勾選後通知我們，以方便我們開始著手為貴公司調整或上架。${imgLaterNote}\n\n希望您能協助於 ${v.dl} 前完成審稿回覆，感謝！\n\n${v.sg}`;
       // LINE 首次寄送 → 有架構用架構詳細版；純文章/產品頁用文章首次版
       const firstArchLine = `我們內部團隊已根據使用者的搜尋意圖分析，以及核心與長尾關鍵字的搜尋量、競爭度、搜尋趨勢等調查，依照 Google SEO 規範安排好${kwFmt} ${v.count} 篇${cd}。\n\n信件與檔案中皆有詳細的審稿提醒說明，要麻煩您於閱讀後再進行審稿，此階段的審稿主要需請您協助的會是：\n\n1. 內文段落撰寫方向是否 ok\n2. 補充相關專業資訊或案例給我們\n3. 提供您專業領域必須留意的撰寫注意事項\n\n詳細的說明文件檢附於信件中，希望能於 ${v.dl} 前收到您的回覆，謝謝！`;
       const firstArticleLine = `剛才有寄送${kwFmt} ${v.count} 篇 SEO ${cd}到信箱，關於審稿的方式與注意事項請幫我們參考信件中提供的文件檔案，裡面有詳細的審稿說明。\n\n完整內容與附件請參考信件，希望能在 ${v.dl} 前收到您的回覆，感謝！`;
@@ -1803,7 +1804,8 @@ document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('outEmail').dataset.subject = result.subject || '';
     }
     if (result.line) {
-      document.getElementById('outLine').textContent = '您好' + getGreetPunc() + '\n\n' + result.line;
+      const lineIntro = document.getElementById('ct_firstSend').checked ? `我是 Welly SEO 的內容編輯${vals().sg}，` : '';
+      document.getElementById('outLine').textContent = '您好' + getGreetPunc() + '\n\n' + lineIntro + result.line;
     }
     groupCard.classList.toggle('hidden', !result.groupMsg);
     if (result.groupMsg) {
