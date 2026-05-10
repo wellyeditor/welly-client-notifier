@@ -541,6 +541,10 @@
           <label>CRM 客戶名稱 <span style="font-weight:400;color:#94a3b8;font-size:11px">含公司全名與簡稱</span></label>
           <input type="text" id="f_crmName" placeholder="例：優尼客室內裝修有限公司（優尼客空間設計）" />
         </div>
+        <div class="field span2">
+          <label>CRM 連結 <span style="font-weight:400;color:#94a3b8;font-size:11px">選填，貼上該客戶的 CRM 頁面網址</span></label>
+          <input type="url" id="f_crmLink" placeholder="https://..." />
+        </div>
         <div class="field">
           <label>上架日期</label>
           <input type="date" id="f_pubDate" />
@@ -922,6 +926,7 @@ function vals() {
     pubNotes: document.getElementById('ct_pubNotes').checked,
     imgFolder: document.getElementById('f_imgFolder').value.trim(),
     crmName: document.getElementById('f_crmName').value.trim(),
+    crmLink: document.getElementById('f_crmLink').value.trim(),
     pubDate: document.getElementById('f_pubDate').value,
   };
 }
@@ -1238,8 +1243,14 @@ function gen(id) {
         }
       }
       const groupHeader = `${pubDateFmt}【${crmDisplay}】上架 ${v.count} 篇文章：`;
-      const groupBody = `${groupHeader}\n${groupLines.join('\n')}`;
-      const groupHtml = `${escH(groupHeader)}<br>${groupHtmlLines.join('<br>')}`;
+      const groupBody = v.crmLink
+        ? `${groupHeader}\n${groupLines.join('\n')}\n\nCRM：${v.crmLink}`
+        : `${groupHeader}\n${groupLines.join('\n')}`;
+      const crmHtml = v.crmLink
+        ? `<a href="${escH(v.crmLink)}" style="color:#1a56db;text-decoration:underline">${escH(crmDisplay)}</a>`
+        : escH(crmDisplay);
+      const groupHtmlHeader = `${escH(pubDateFmt)}【${crmHtml}】上架 ${escH(v.count)} 篇文章：`;
+      const groupHtml = `${groupHtmlHeader}<br>${groupHtmlLines.join('<br>')}`;
 
       return {
         subject: `【${v.cn}】SEO 專文上架連結提供 - Welly`,
