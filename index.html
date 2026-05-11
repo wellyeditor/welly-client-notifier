@@ -308,6 +308,12 @@
 
 
       <div class="settings-section">
+        <div class="settings-section-title">日曆提醒對象</div>
+        <input type="text" class="settings-input" id="calendarTarget" placeholder="預設同署名，職代時填入原負責人名字" maxlength="20" />
+        <div style="font-size:12px;color:#94a3b8;margin-top:6px">留空 = 提醒建在自己日曆；填入其他人名字 = 建在對方日曆</div>
+      </div>
+
+      <div class="settings-section">
         <div class="settings-section-title">稱呼標點</div>
         <div class="radio-pills" id="greetingPuncPills">
           <label><input type="radio" name="greetingPunc" value="～" checked>波浪號（～）</label>
@@ -1499,6 +1505,13 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('f_sg').value = n;
   });
 
+  // 日曆提醒對象設定
+  const calTargetInput = document.getElementById('calendarTarget');
+  calTargetInput.value = localStorage.getItem('wellyCalTarget') || '';
+  calTargetInput.addEventListener('input', () => {
+    localStorage.setItem('wellyCalTarget', calTargetInput.value.trim());
+  });
+
   // 稱呼標點設定
   const savedPunc = localStorage.getItem('wellyGreetPunc') || '～';
   document.querySelector(`input[name="greetingPunc"][value="${savedPunc}"]`).checked = true;
@@ -1763,9 +1776,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const scenarioEl = document.getElementById('scenarioSelect');
     const scenarioLabel = scenarioEl.options[scenarioEl.selectedIndex].text;
     const operator = localStorage.getItem('wellySignoff') || '';
+    const calTarget = localStorage.getItem('wellyCalTarget') || '';
 
     const payload = {
       operator: operator,
+      calendarTarget: calTarget || operator,
       scenario: scenarioId,
       scenarioLabel: scenarioLabel,
       clientName: clientName,
