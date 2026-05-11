@@ -310,9 +310,14 @@
 
 
       <div class="settings-section">
-        <div class="settings-section-title">日曆提醒對象</div>
-        <input type="text" class="settings-input" id="calendarTarget" placeholder="預設同署名，職代時填入原負責人名字" maxlength="20" />
-        <div style="font-size:12px;color:#94a3b8;margin-top:6px">留空 = 提醒建在自己日曆；填入其他人名字 = 建在對方日曆</div>
+        <div class="settings-section-title">職務代理</div>
+        <input type="text" class="settings-input" id="calendarTarget" placeholder="原負責人名字（留空 = 非職代模式）" maxlength="20" />
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <input type="date" class="settings-input" id="leaveFrom" style="flex:1" />
+          <span style="line-height:36px;color:#94a3b8">～</span>
+          <input type="date" class="settings-input" id="leaveTo" style="flex:1" />
+        </div>
+        <div style="font-size:12px;color:#94a3b8;margin-top:6px">填入後，信件開頭自動加上職代說明；日曆提醒建在原負責人日曆</div>
       </div>
 
       <div class="settings-section">
@@ -1028,7 +1033,18 @@ function gen(id) {
   const isDirectGreeting = v.ct.endsWith('～') || v.ct.endsWith('，');
   const hi = isDirectGreeting ? v.ct : `${v.ct} 您好：`;
   const dearHi = isDirectGreeting ? v.ct : `Dear ${v.ct} 您好：`;
-  const selfIntro = v.isFirstSend ? `\n\n我是 Welly SEO 的內容編輯${v.sg}，` : '\n\n';
+  // 職代開頭
+  const calTarget = localStorage.getItem('wellyCalTarget') || '';
+  const leaveFrom = localStorage.getItem('wellyLeaveFrom') || '';
+  const leaveTo = localStorage.getItem('wellyLeaveTo') || '';
+  let proxyIntro = '';
+  if (calTarget && leaveFrom && leaveTo) {
+    const fmtLeave = (d) => { const p = d.split('-'); return `${parseInt(p[1])}/${parseInt(p[2])}`; };
+    proxyIntro = `我是內容編輯${v.sg}，${calTarget} ${fmtLeave(leaveFrom)}～${fmtLeave(leaveTo)} 休假，所以這段期間由我代為回覆～\n\n`;
+  }
+  const selfIntro = v.isFirstSend
+    ? `\n\n我是 Welly SEO 的內容編輯${v.sg}，`
+    : (proxyIntro ? `\n\n${proxyIntro}` : '\n\n');
 
   // 關鍵字拆分 → 用於文章名稱 & 格式化顯示
   const kwParts = v.kw.split(/[、，,]+/).map(s => s.trim()).filter(Boolean);
@@ -1507,11 +1523,21 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('f_sg').value = n;
   });
 
-  // 日曆提醒對象設定
+  // 職務代理設定
   const calTargetInput = document.getElementById('calendarTarget');
+  const leaveFromInput = document.getElementById('leaveFrom');
+  const leaveToInput = document.getElementById('leaveTo');
   calTargetInput.value = localStorage.getItem('wellyCalTarget') || '';
+  leaveFromInput.value = localStorage.getItem('wellyLeaveFrom') || '';
+  leaveToInput.value = localStorage.getItem('wellyLeaveTo') || '';
   calTargetInput.addEventListener('input', () => {
     localStorage.setItem('wellyCalTarget', calTargetInput.value.trim());
+  });
+  leaveFromInput.addEventListener('change', () => {
+    localStorage.setItem('wellyLeaveFrom', leaveFromInput.value);
+  });
+  leaveToInput.addEventListener('change', () => {
+    localStorage.setItem('wellyLeaveTo', leaveToInput.value);
   });
 
   // 稱呼標點設定
@@ -1821,7 +1847,18 @@ document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('outEmail').dataset.subject = result.subject || '';
     }
     if (result.line) {
-      const lineIntro = document.getElementById('ct_firstSend').checked ? `我是 Welly SEO 的內容編輯${vals().sg}，` : '';
+      const v2 = vals();
+      const ct2 = localStorage.getItem('wellyCalTarget') || '';
+      const lf2 = localStorage.getItem('wellyLeaveFrom') || '';
+      const lt2 = localStorage.getItem('wellyLeaveTo') || '';
+      let lineProxy = '';
+      if (ct2 && lf2 && lt2) {
+        const fmtL = (d) => { const p = d.split('-'); return `${parseInt(p[1])}/${parseInt(p[2])}`; };
+        lineProxy = `我是內容編輯${v2.sg}，${ct2} ${fmtL(lf2)}～${fmtL(lt2)} 休假，所以這段期間由我代為回覆～\n\n`;
+      }
+      const lineIntro = document.getElementById('ct_firstSend').checked
+        ? `我是 Welly SEO 的內容編輯${v2.sg}，`
+        : lineProxy;
       document.getElementById('outLine').textContent = '您好' + getGreetPunc() + '\n\n' + lineIntro + result.line;
     }
     groupCard.classList.toggle('hidden', !result.groupMsg);
