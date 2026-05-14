@@ -2089,6 +2089,9 @@ async function checkViaGAS(fileId, dot, requireEdit) {
   dot.title = requireEdit
     ? '✓ 已開啟編輯權限'
     : '✓ 已開啟檢視權限';
+
+  // 回傳檔名供自動填入
+  return data.name || '';
 }
 
 // Proxy 檢查（僅文件，不支援資料夾）
@@ -2141,25 +2144,49 @@ async function checkGoogleAccess(url, dot, requireEdit) {
   try {
     // 有 GAS → 全部走 GAS（資料夾也能查）
     if (GAS_PERMISSION_URL) {
-      await checkViaGAS(info.id, dot, requireEdit);
-      return;
+      const name = await checkViaGAS(info.id, dot, requireEdit);
+      return name || '';
     }
     // 沒有 GAS → 資料夾無法檢查，文件走 proxy
     if (info.type === 'folder') {
       dot.className = 'link-status'; dot.title = '需設定 GAS API 才能檢查資料夾權限';
-      return;
+      return '';
     }
     await checkViaProxy(info, dot, requireEdit);
+    return '';
   } catch(e) {
     dot.className = 'link-status fail';
     dot.title = e.name === 'AbortError' ? '✗ 檢查逾時，請確認連結是否正確' : '✗ 檢查失敗，請確認網路連線';
+    return '';
   }
 }
 
-function checkLinkAccess(n) {
+async function checkLinkAccess(n) {
   const url = document.getElementById('f_l' + n).value.trim();
   const dot = document.getElementById('ls' + n);
-  checkGoogleAccess(url, dot, true);
+  const docName = await checkGoogleAccess(url, dot, true);
+  if (docName) autoFillFromDocName(docName);
+}
+
+// 從 Google Doc 檔名自動填入關鍵字
+// 常見格式：「1.芬蘭必買 - 文章」「2.植牙費用 - 架構」「隆鼻推薦 - 文章」
+function autoFillFromDocName(name) {
+  const kwEl = document.getElementById('f_kw');
+  // 只在關鍵字欄位為空時自動填入
+  if (!kwEl || kwEl.value.trim()) return;
+
+  // 去除前綴編號（1. 2. 01. 等）
+  let cleaned = name.replace(/^\d+\.\s*/, '').trim();
+  // 去除後綴類型（ - 文章 / - 架構 / - 大綱 等）
+  cleaned = cleaned.replace(/\s*[-–—]\s*(文章|架構|大綱|草稿|初稿|二稿|定稿|修改版|v\d+).*$/i, '').trim();
+  // 去除 (copy) 之類的後綴
+  cleaned = cleaned.replace(/\s*\(copy\).*$/i, '').trim();
+
+  if (cleaned && cleaned.length >= 2) {
+    kwEl.value = cleaned;
+    kwEl.style.borderColor = '#86efac';
+    setTimeout(() => { kwEl.style.borderColor = ''; }, 2000);
+  }
 }
 
 function checkImgFolderAccess() {
