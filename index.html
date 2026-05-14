@@ -643,6 +643,44 @@
 
 </div>
 
+<!-- 快速日曆提醒（獨立區塊） -->
+<div class="container" style="margin-top:24px">
+  <div class="step-label" style="margin-bottom:16px">
+    <div class="step-num" style="background:#f59e0b">⏰</div>
+    <span class="step-title">快速日曆提醒</span>
+    <span style="font-size:12px;color:#94a3b8;margin-left:8px">不產生通知，僅建立日曆提醒</span>
+  </div>
+  <div class="grid">
+    <div class="field">
+      <label>客戶名稱</label>
+      <input type="text" id="qr_cn" placeholder="客戶名稱" />
+    </div>
+    <div class="field">
+      <label>關鍵字</label>
+      <input type="text" id="qr_kw" placeholder="關鍵字（逗號分隔）" />
+    </div>
+    <div class="field">
+      <label>篇數</label>
+      <select id="qr_count">
+        <option value="1">1 篇</option><option value="2">2 篇</option><option value="3" selected>3 篇</option>
+        <option value="4">4 篇</option><option value="5">5 篇</option><option value="6">6 篇</option>
+        <option value="7">7 篇</option><option value="8">8 篇</option><option value="9">9 篇</option>
+        <option value="10">10 篇</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>截止日</label>
+      <input type="date" id="qr_dl" />
+    </div>
+    <div class="field">
+      <label>情境備註</label>
+      <input type="text" id="qr_note" placeholder="例：審稿、小改、圖片..." />
+    </div>
+  </div>
+  <button class="gen-btn" id="qrBtn" style="background:linear-gradient(135deg,#f59e0b,#d97706);margin-top:12px">⏰ 建立日曆提醒</button>
+  <div class="hidden" id="qrResult" style="margin-top:12px;padding:12px 16px;border-radius:8px;background:#fef3c7;color:#92400e;font-size:13px"></div>
+</div>
+
 <script>
 // ─── 稱呼標點 helper ─────────────────────────────────────────────────
 function getGreetPunc() {
@@ -2149,6 +2187,60 @@ function setDateShortcut(days) {
     + String(d.getDate()).padStart(2, '0');
   document.getElementById('f_dl').value = iso;
 }
+
+// ─── 快速日曆提醒 ─────────────────────────────────────────────────
+document.getElementById('qrBtn').addEventListener('click', function() {
+  const cn = document.getElementById('qr_cn').value.trim();
+  const kw = document.getElementById('qr_kw').value.trim();
+  const count = document.getElementById('qr_count').value;
+  const dl = document.getElementById('qr_dl').value;
+  const note = document.getElementById('qr_note').value.trim();
+  const resultEl = document.getElementById('qrResult');
+
+  if (!cn) { resultEl.textContent = '請填入客戶名稱'; resultEl.classList.remove('hidden'); return; }
+  if (!dl) { resultEl.textContent = '請選擇截止日'; resultEl.classList.remove('hidden'); return; }
+
+  if (!GAS_LOGGER_URL) { resultEl.textContent = 'GAS API 未設定'; resultEl.classList.remove('hidden'); return; }
+
+  const operator = localStorage.getItem('wellySignoff') || '';
+  const calTarget = localStorage.getItem('wellyCalTarget') || '';
+
+  const payload = {
+    operator: operator,
+    calendarTarget: calTarget || operator,
+    scenario: 'quick_reminder',
+    scenarioLabel: note || '快速提醒',
+    clientName: cn,
+    keywords: kw,
+    count: count,
+    deadline: dl,
+    note: '快速日曆提醒',
+  };
+
+  this.disabled = true;
+  this.textContent = '送出中...';
+
+  fetch(GAS_LOGGER_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain' },
+    body: JSON.stringify(payload),
+    mode: 'no-cors',
+  }).then(() => {
+    resultEl.textContent = '✅ 已送出！日曆提醒將建立在截止日當天。';
+    resultEl.style.background = '#d1fae5';
+    resultEl.style.color = '#065f46';
+    resultEl.classList.remove('hidden');
+    this.disabled = false;
+    this.textContent = '⏰ 建立日曆提醒';
+  }).catch(() => {
+    resultEl.textContent = '❌ 送出失敗，請稍後再試';
+    resultEl.style.background = '#fecaca';
+    resultEl.style.color = '#991b1b';
+    resultEl.classList.remove('hidden');
+    this.disabled = false;
+    this.textContent = '⏰ 建立日曆提醒';
+  });
+});
 
 </script>
 </body>
