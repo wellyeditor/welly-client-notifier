@@ -814,7 +814,7 @@ function updateLinkRows(n) {
     if (savedTitles[i]) document.getElementById('f_lt_title' + i).value = savedTitles[i];
     // 綁定 debounce 檢查 + 自動抓標題（僅 linkTitle 情境）
     (function(idx) {
-      let timer;
+      let timer, lastUrl = '';
       document.getElementById('f_l' + idx).addEventListener('input', function() {
         clearTimeout(timer);
         const dot = document.getElementById('ls' + idx);
@@ -823,8 +823,17 @@ function updateLinkRows(n) {
         if (url) {
           timer = setTimeout(() => {
             if (!showTitle) checkLinkAccess(idx);
-            if (showTitle) fetchPageTitle(idx, url);
+            if (showTitle && url !== lastUrl) {
+              lastUrl = url;
+              const titleEl = document.getElementById('f_lt_title' + idx);
+              if (titleEl) { titleEl.value = ''; titleEl.style.borderColor = ''; }
+              fetchPageTitle(idx, url);
+            }
           }, 800);
+        } else {
+          lastUrl = '';
+          const titleEl = document.getElementById('f_lt_title' + idx);
+          if (titleEl) { titleEl.value = ''; titleEl.style.borderColor = ''; titleEl.placeholder = '文章標題（貼上連結自動抓取，或手動輸入）'; }
         }
       });
     })(i);
@@ -835,7 +844,7 @@ function updateLinkRows(n) {
 // 嘗試抓取網頁 <title>
 async function fetchPageTitle(idx, url) {
   const titleEl = document.getElementById('f_lt_title' + idx);
-  if (!titleEl || titleEl.value.trim()) return;
+  if (!titleEl) return;
   if (/docs\.google\.com|drive\.google\.com/.test(url)) return;
   titleEl.placeholder = '抓取標題中...';
   const extractTitle = (html) => {
