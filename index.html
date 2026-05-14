@@ -354,9 +354,12 @@
     <div class="settings-card" style="max-width:560px">
       <button class="settings-close" id="reminderClose">✕</button>
       <div class="settings-title">快速日曆提醒</div>
-      <p style="font-size:13px;color:#94a3b8;margin:-8px 0 16px">貼上你的信件文字，自動擷取資訊並建立日曆提醒</p>
+      <p style="font-size:13px;color:#94a3b8;margin:-8px 0 16px">直接在 Gmail 整頁全選複製（Ctrl+A → Ctrl+C），貼上即可自動擷取</p>
+      <div style="margin-bottom:12px;padding:10px 14px;background:#eff6ff;border-radius:8px;border:1px solid #bfdbfe;font-size:12px;color:#1e40af;line-height:1.6">
+        <strong>使用方式：</strong>打開你要寄的信 → 在頁面上 Ctrl+A 全選 → Ctrl+C 複製 → 貼到下方框框即可。<br>系統會自動從主旨和內文抓取客戶名稱、關鍵字、日期、篇數，擷取後可手動微調。
+      </div>
 
-      <textarea id="qr_text" rows="8" style="width:100%;padding:12px;border:1px solid #e2e4ec;border-radius:10px;font-size:13px;line-height:1.7;resize:vertical;font-family:inherit" placeholder="把你要寄的信件內容貼在這裡...&#10;&#10;系統會自動擷取：&#10;• 日期（如 5/20、2026/5/20、5/20（二）前）&#10;• 客戶名稱（【OO公司】格式）&#10;• 關鍵字（【關鍵字】格式）&#10;• 篇數（N 篇）"></textarea>
+      <textarea id="qr_text" rows="8" style="width:100%;padding:12px;border:1px solid #e2e4ec;border-radius:10px;font-size:13px;line-height:1.7;resize:vertical;font-family:inherit" placeholder="在 Gmail 信件頁面按 Ctrl+A 全選、Ctrl+C 複製，然後貼在這裡...&#10;&#10;系統會自動擷取：&#10;• 客戶名稱（從主旨【OO公司】或內文 XX 您好）&#10;• 關鍵字（核心關鍵字：XX 或內文【關鍵字】）&#10;• 日期（如 5/20、2026/5/20、5/20（二）前）&#10;• 篇數（N 篇）"></textarea>
 
       <div id="qr_parsed" class="hidden" style="margin-top:16px;padding:16px;background:#f8fafc;border-radius:10px;border:1px solid #e2e4ec">
         <div style="font-size:12px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px">擷取結果（可手動修改）</div>
