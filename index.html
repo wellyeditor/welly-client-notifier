@@ -2214,32 +2214,51 @@ function parseReminderText() {
 
   // ─── 客戶名稱 ───
   let clientName = '';
-  // 1. 「XX 您好」「XX您好」「Dear XX 您好」
-  const hiMatch = text.match(/(?:Dear\s+)?(.+?)(?:的夥伴們|們)?\s*您好/);
-  if (hiMatch) {
-    clientName = hiMatch[1].replace(/^Dear\s+/i, '').trim();
-  }
-  // 2. fallback：主旨格式【XX】SEO / 【XX】
+  // 1. 主旨格式：【XX】SEO ... - Welly / 【XX】...確認
+  const subjMatch = text.match(/【([^】]+?)】(?:SEO|.*?確認|.*?上架|.*?連結|.*?圖片).*?(?:Welly|-\s*Welly)?/);
+  if (subjMatch) clientName = subjMatch[1];
+  // 2. 「XX 您好」但排除 Dear 後的英文名（那是聯絡人不是公司）
   if (!clientName) {
-    const subjMatch = text.match(/【([^】]+?)】(?:SEO|.*?確認|.*?上架)/);
-    if (subjMatch) clientName = subjMatch[1];
+    const hiMatch = text.match(/(?:Dear\s+)?(.+?)(?:的夥伴們|們)?\s*您好/);
+    if (hiMatch) {
+      const name = hiMatch[1].replace(/^Dear\s+/i, '').trim();
+      // 如果是中文多字（可能是公司名），就用；英文短名可能只是聯絡人
+      if (/[一-鿿]{2,}/.test(name)) clientName = name;
+    }
   }
 
-  // ─── 關鍵字（核心關鍵字：XX） ───
-  const kwMatches = [...text.matchAll(/核心關鍵字[：:](.+)/g)].map(m => m[1].trim());
+  // ─── 關鍵字 ───
+  let kwList = [];
+  // 1. 「核心關鍵字：XX」格式（小改情境）
+  const coreKw = [...text.matchAll(/核心關鍵字[：:](.+)/g)].map(m => m[1].trim());
+  if (coreKw.length) {
+    kwList = coreKw;
+  } else {
+    // 2. 內文【XX】N 篇 / 【XX、YY】格式（排除主旨的客戶名和固定文字）
+    const bodyKw = [...text.matchAll(/【([^】]+?)】/g)]
+      .map(m => m[1])
+      .filter(k => k !== clientName
+        && !/審稿說明|審稿提醒|文檔名稱|文章內文|後台|SEO Meta/.test(k));
+    if (bodyKw.length) {
+      // 可能是「檯燈推薦」或「關鍵字1、關鍵字2」→ 拆開逗號
+      kwList = bodyKw.flatMap(k => k.split(/[、，,]+/).map(s => s.trim())).filter(Boolean);
+    }
+  }
 
   // ─── 篇數 ───
-  // 優先用「N 篇」，沒有就用關鍵字數量
   const countMatch = text.match(/(\d+)\s*篇/);
-  const count = countMatch ? countMatch[1] : (kwMatches.length || '3');
+  const count = countMatch ? countMatch[1] : (kwList.length || '3');
 
   // ─── 截止日 ───
   let dlDate = '';
-  // 格式：2026/5/20、2026/05/20
+  // 優先抓「於 XX 前」「在 XX 前」附近的日期（這才是截止日）
+  const dlContextMatch = text.match(/(?:於|在|能於|能在)\s*(?:(\d{4})[\/\-])?(\d{1,2})[\/](\d{1,2})(?:（[日一二三四五六]）)?\s*前/);
   const fullDateMatch = text.match(/(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})/);
-  // 格式：05/15（五）、5/20、05/20
   const shortDateMatch = text.match(/(\d{1,2})\/(\d{1,2})(?:（[日一二三四五六]）)?/);
-  if (fullDateMatch) {
+  if (dlContextMatch) {
+    const y = dlContextMatch[1] || new Date().getFullYear();
+    dlDate = `${y}-${dlContextMatch[2].padStart(2,'0')}-${dlContextMatch[3].padStart(2,'0')}`;
+  } else if (fullDateMatch) {
     dlDate = `${fullDateMatch[1]}-${fullDateMatch[2].padStart(2,'0')}-${fullDateMatch[3].padStart(2,'0')}`;
   } else if (shortDateMatch) {
     const y = new Date().getFullYear();
@@ -2248,7 +2267,7 @@ function parseReminderText() {
 
   // 填入結果
   document.getElementById('qr_cn').value = clientName;
-  document.getElementById('qr_kw').value = kwMatches.join('、');
+  document.getElementById('qr_kw').value = kwList.join('、');
   document.getElementById('qr_count').value = count;
   document.getElementById('qr_dl').value = dlDate;
 
@@ -2256,11 +2275,11 @@ function parseReminderText() {
   let guessNote = '';
   if (/架構/.test(text)) guessNote = '架構審稿';
   else if (/圖片/.test(text)) guessNote = '圖片審核';
-  else if (/上架/.test(text)) guessNote = '上架';
-  else if (/請調整為|預計調整為|潛力/.test(text)) guessNote = '小改';
+  else if (/已上架|上架連結/.test(text)) guessNote = '上架';
+  else if (/請調整為|預計調整為|潛力關鍵字/.test(text)) guessNote = '小改';
   else if (/大改|優化調整/.test(text)) guessNote = '大改';
-  else if (/修改.*版|第.*版/.test(text)) guessNote = '回稿修改';
-  else if (/審稿|確認/.test(text)) guessNote = '審稿';
+  else if (/修改.*版|第\s*\d+\s*版/.test(text)) guessNote = '回稿修改';
+  else if (/審稿|第\s*1\s*版確認/.test(text)) guessNote = '審稿';
   document.getElementById('qr_note').value = guessNote;
 
   document.getElementById('qr_parsed').classList.remove('hidden');
