@@ -1009,17 +1009,18 @@ function makeEmailHtml(plain, lb, lbHtml) {
 
 // ─── 模板 ─────────────────────────────────────────────────────────
 // 小改：每篇 Meta 區塊（列點格式）
-function buildMetaBlock(items, isAfter, chgTitle, chgDesc) {
+function buildMetaBlock(items, isAfter, chgTitle, chgDesc, isClient) {
+  const verb = isAfter ? '' : (isClient ? '請調整為' : '預計調整為');
   return items.map(m => {
     const parts = [];
     parts.push(`核心關鍵字：${m.kw || '【關鍵字】'}`);
     if (chgTitle) {
       parts.push(`原標題及 SEO 標題（Meta Title）：${m.oTitle || '【原標題】'}`);
-      parts.push(`${isAfter ? '現' : ''}標題及 SEO 標題（Meta Title）${isAfter ? '' : '預計調整為'}：${m.nTitle || '【新標題】'}`);
+      parts.push(`${isAfter ? '現' : ''}標題及 SEO 標題（Meta Title）${verb}：${m.nTitle || '【新標題】'}`);
     }
     if (chgDesc) {
       parts.push(`原前言及 SEO 描述（Meta Description）：${m.oDesc || '【原描述】'}`);
-      parts.push(`${isAfter ? '現' : ''}前言及 SEO 描述（Meta Description）${isAfter ? '' : '預計調整為'}：${m.nDesc || '【新描述】'}`);
+      parts.push(`${isAfter ? '現' : ''}前言及 SEO 描述（Meta Description）${verb}：${m.nDesc || '【新描述】'}`);
     }
     return parts.join('\n');
   }).join('\n\n');
@@ -1289,7 +1290,7 @@ function gen(id) {
       const t = v.potSmType;
       const isAfter = t === 'after' || t === 'noemail';
       const dateText = t === 'client' ? (v.updateDate ? '，並更新文章日期' : '') : (v.updateDate ? '，並更新日期' : '');
-      const metaBlock = buildMetaBlock(v.metaItems, isAfter, v.chgTitle, v.chgDesc);
+      const metaBlock = buildMetaBlock(v.metaItems, isAfter, v.chgTitle, v.chgDesc, t === 'client');
       let emailBody = null;
       let lineBody;
       if (t === 'client') {
@@ -1379,19 +1380,20 @@ function genWithHtml(id) {
     // 小改 Meta 區塊：純文字 → HTML 列點排版
     if (v.metaItems && v.metaItems.length && sc.meta) {
       const isAfterType = v.potSmType === 'after' || v.potSmType === 'noemail';
-      const plainMeta = buildMetaBlock(v.metaItems, isAfterType, v.chgTitle, v.chgDesc);
+      const isClientType = v.potSmType === 'client';
+      const plainMeta = buildMetaBlock(v.metaItems, isAfterType, v.chgTitle, v.chgDesc, isClientType);
       const htmlMeta = v.metaItems.map(m => {
         let h = `<p style="margin:20px 0 8px;font-weight:700;color:#2c3e50">核心關鍵字：${escH(m.kw || '【關鍵字】')}</p>`;
         h += '<ul style="margin:6px 0 16px;padding-left:22px">';
         if (v.chgTitle) {
           const labelNew = isAfterType ? '現' : '';
-          const verbNew = isAfterType ? '' : '預計調整為';
+          const verbNew = isAfterType ? '' : (isClientType ? '請調整為' : '預計調整為');
           h += `<li style="margin:8px 0">原標題及 SEO 標題（Meta Title）：${escH(m.oTitle || '【原標題】')}</li>`;
           h += `<li style="margin:8px 0"><strong style="color:#2980b9">${labelNew}標題及 SEO 標題（Meta Title）${verbNew}：</strong>${escH(m.nTitle || '【新標題】')}</li>`;
         }
         if (v.chgDesc) {
           const labelNew = isAfterType ? '現' : '';
-          const verbNew = isAfterType ? '' : '預計調整為';
+          const verbNew = isAfterType ? '' : (isClientType ? '請調整為' : '預計調整為');
           h += `<li style="margin:8px 0">原前言及 SEO 描述（Meta Description）：${escH(m.oDesc || '【原描述】')}</li>`;
           h += `<li style="margin:8px 0"><strong style="color:#2980b9">${labelNew}前言及 SEO 描述（Meta Description）${verbNew}：</strong>${escH(m.nDesc || '【新描述】')}</li>`;
         }
