@@ -292,9 +292,14 @@
       <h1>✉️ 客戶通知生成器</h1>
       <p>選情境 → 填資料 → 一鍵生成 Email ＋ LINE</p>
     </div>
-    <button class="settings-toggle" id="settingsToggle" title="設定">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
-    </button>
+    <div style="display:flex;gap:8px">
+      <button class="settings-toggle" id="reminderToggle" title="快速日曆提醒">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      </button>
+      <button class="settings-toggle" id="settingsToggle" title="設定">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+      </button>
+    </div>
   </div>
 
   <!-- 設定面板 -->
@@ -341,6 +346,47 @@
           📝 回報錯誤 / 許願新功能
         </a>
       </div>
+    </div>
+  </div>
+
+  <!-- 快速日曆提醒面板 -->
+  <div class="settings-overlay" id="reminderOverlay">
+    <div class="settings-card" style="max-width:560px">
+      <button class="settings-close" id="reminderClose">✕</button>
+      <div class="settings-title">快速日曆提醒</div>
+      <p style="font-size:13px;color:#94a3b8;margin:-8px 0 16px">貼上你的信件文字，自動擷取資訊並建立日曆提醒</p>
+
+      <textarea id="qr_text" rows="8" style="width:100%;padding:12px;border:1px solid #e2e4ec;border-radius:10px;font-size:13px;line-height:1.7;resize:vertical;font-family:inherit" placeholder="把你要寄的信件內容貼在這裡...&#10;&#10;系統會自動擷取：&#10;• 日期（如 5/20、2026/5/20、5/20（二）前）&#10;• 客戶名稱（【OO公司】格式）&#10;• 關鍵字（【關鍵字】格式）&#10;• 篇數（N 篇）"></textarea>
+
+      <div id="qr_parsed" class="hidden" style="margin-top:16px;padding:16px;background:#f8fafc;border-radius:10px;border:1px solid #e2e4ec">
+        <div style="font-size:12px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px">擷取結果（可手動修改）</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <div>
+            <label style="font-size:12px;color:#64748b;display:block;margin-bottom:4px">客戶名稱</label>
+            <input type="text" id="qr_cn" style="width:100%;padding:6px 10px;border:1px solid #e2e4ec;border-radius:6px;font-size:13px" />
+          </div>
+          <div>
+            <label style="font-size:12px;color:#64748b;display:block;margin-bottom:4px">關鍵字</label>
+            <input type="text" id="qr_kw" style="width:100%;padding:6px 10px;border:1px solid #e2e4ec;border-radius:6px;font-size:13px" />
+          </div>
+          <div>
+            <label style="font-size:12px;color:#64748b;display:block;margin-bottom:4px">篇數</label>
+            <input type="number" id="qr_count" min="1" max="20" value="3" style="width:100%;padding:6px 10px;border:1px solid #e2e4ec;border-radius:6px;font-size:13px" />
+          </div>
+          <div>
+            <label style="font-size:12px;color:#64748b;display:block;margin-bottom:4px">截止日</label>
+            <input type="date" id="qr_dl" style="width:100%;padding:6px 10px;border:1px solid #e2e4ec;border-radius:6px;font-size:13px" />
+          </div>
+          <div style="grid-column:span 2">
+            <label style="font-size:12px;color:#64748b;display:block;margin-bottom:4px">情境備註</label>
+            <input type="text" id="qr_note" placeholder="例：審稿、小改、圖片..." style="width:100%;padding:6px 10px;border:1px solid #e2e4ec;border-radius:6px;font-size:13px" />
+          </div>
+        </div>
+      </div>
+
+      <button id="qr_parseBtn" style="width:100%;margin-top:14px;padding:10px;border:none;border-radius:10px;background:linear-gradient(135deg,#6366f1,#4f46e5);color:#fff;font-size:14px;font-weight:600;cursor:pointer;transition:opacity .15s" onclick="parseReminderText()">擷取資訊</button>
+      <button id="qr_sendBtn" class="hidden" style="width:100%;margin-top:8px;padding:10px;border:none;border-radius:10px;background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;font-size:14px;font-weight:600;cursor:pointer;transition:opacity .15s">建立日曆提醒</button>
+      <div id="qr_result" class="hidden" style="margin-top:10px;padding:10px 14px;border-radius:8px;font-size:13px;text-align:center"></div>
     </div>
   </div>
 
@@ -643,43 +689,6 @@
 
 </div>
 
-<!-- 快速日曆提醒（獨立區塊） -->
-<div class="container" style="margin-top:24px">
-  <div class="step-label" style="margin-bottom:16px">
-    <div class="step-num" style="background:#f59e0b">⏰</div>
-    <span class="step-title">快速日曆提醒</span>
-    <span style="font-size:12px;color:#94a3b8;margin-left:8px">不產生通知，僅建立日曆提醒</span>
-  </div>
-  <div class="grid">
-    <div class="field">
-      <label>客戶名稱</label>
-      <input type="text" id="qr_cn" placeholder="客戶名稱" />
-    </div>
-    <div class="field">
-      <label>關鍵字</label>
-      <input type="text" id="qr_kw" placeholder="關鍵字（逗號分隔）" />
-    </div>
-    <div class="field">
-      <label>篇數</label>
-      <select id="qr_count">
-        <option value="1">1 篇</option><option value="2">2 篇</option><option value="3" selected>3 篇</option>
-        <option value="4">4 篇</option><option value="5">5 篇</option><option value="6">6 篇</option>
-        <option value="7">7 篇</option><option value="8">8 篇</option><option value="9">9 篇</option>
-        <option value="10">10 篇</option>
-      </select>
-    </div>
-    <div class="field">
-      <label>截止日</label>
-      <input type="date" id="qr_dl" />
-    </div>
-    <div class="field">
-      <label>情境備註</label>
-      <input type="text" id="qr_note" placeholder="例：審稿、小改、圖片..." />
-    </div>
-  </div>
-  <button class="gen-btn" id="qrBtn" style="background:linear-gradient(135deg,#f59e0b,#d97706);margin-top:12px">⏰ 建立日曆提醒</button>
-  <div class="hidden" id="qrResult" style="margin-top:12px;padding:12px 16px;border-radius:8px;background:#fef3c7;color:#92400e;font-size:13px"></div>
-</div>
 
 <script>
 // ─── 稱呼標點 helper ─────────────────────────────────────────────────
@@ -2188,19 +2197,70 @@ function setDateShortcut(days) {
   document.getElementById('f_dl').value = iso;
 }
 
-// ─── 快速日曆提醒 ─────────────────────────────────────────────────
-document.getElementById('qrBtn').addEventListener('click', function() {
+// ─── 快速日曆提醒面板 ────────────────────────────────────────────
+document.getElementById('reminderToggle').addEventListener('click', () => {
+  document.getElementById('reminderOverlay').classList.add('open');
+});
+document.getElementById('reminderClose').addEventListener('click', () => {
+  document.getElementById('reminderOverlay').classList.remove('open');
+});
+document.getElementById('reminderOverlay').addEventListener('click', (e) => {
+  if (e.target === e.currentTarget) e.currentTarget.classList.remove('open');
+});
+
+function parseReminderText() {
+  const text = document.getElementById('qr_text').value;
+  if (!text.trim()) return;
+
+  // 擷取客戶名稱：【OO公司】格式
+  const cnMatch = text.match(/【([^】]+?)】/);
+  // 擷取篇數：N 篇
+  const countMatch = text.match(/(\d+)\s*篇/);
+  // 擷取關鍵字：多個【XX】
+  const kwMatches = [...text.matchAll(/【([^】]+?)】/g)].map(m => m[1]);
+  // 擷取日期：多種格式
+  let dlDate = '';
+  // 格式：2026/5/20、2026/05/20
+  const fullDateMatch = text.match(/(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})/);
+  // 格式：5/20、05/20、5/20（二）
+  const shortDateMatch = text.match(/(\d{1,2})[\/](\d{1,2})(?:（[日一二三四五六]）)?(?:\s*前)?/);
+  if (fullDateMatch) {
+    dlDate = `${fullDateMatch[1]}-${fullDateMatch[2].padStart(2,'0')}-${fullDateMatch[3].padStart(2,'0')}`;
+  } else if (shortDateMatch) {
+    const y = new Date().getFullYear();
+    dlDate = `${y}-${shortDateMatch[1].padStart(2,'0')}-${shortDateMatch[2].padStart(2,'0')}`;
+  }
+
+  // 填入結果
+  document.getElementById('qr_cn').value = cnMatch ? cnMatch[1] : '';
+  document.getElementById('qr_kw').value = kwMatches.length > 1 ? kwMatches.slice(1).join('、') : (kwMatches[0] || '');
+  document.getElementById('qr_count').value = countMatch ? countMatch[1] : '3';
+  document.getElementById('qr_dl').value = dlDate;
+
+  // 猜情境
+  let guessNote = '';
+  if (/架構/.test(text)) guessNote = '架構審稿';
+  else if (/圖片/.test(text)) guessNote = '圖片審核';
+  else if (/上架/.test(text)) guessNote = '上架';
+  else if (/小改|Meta|潛力/.test(text)) guessNote = '小改';
+  else if (/大改|優化調整/.test(text)) guessNote = '大改';
+  else if (/修改.*版|第.*版/.test(text)) guessNote = '回稿修改';
+  else if (/審稿|確認/.test(text)) guessNote = '審稿';
+  document.getElementById('qr_note').value = guessNote;
+
+  document.getElementById('qr_parsed').classList.remove('hidden');
+  document.getElementById('qr_sendBtn').classList.remove('hidden');
+  document.getElementById('qr_parseBtn').textContent = '重新擷取';
+}
+
+document.getElementById('qr_sendBtn').addEventListener('click', function() {
   const cn = document.getElementById('qr_cn').value.trim();
-  const kw = document.getElementById('qr_kw').value.trim();
-  const count = document.getElementById('qr_count').value;
   const dl = document.getElementById('qr_dl').value;
-  const note = document.getElementById('qr_note').value.trim();
-  const resultEl = document.getElementById('qrResult');
+  const resultEl = document.getElementById('qr_result');
 
-  if (!cn) { resultEl.textContent = '請填入客戶名稱'; resultEl.classList.remove('hidden'); return; }
-  if (!dl) { resultEl.textContent = '請選擇截止日'; resultEl.classList.remove('hidden'); return; }
-
-  if (!GAS_LOGGER_URL) { resultEl.textContent = 'GAS API 未設定'; resultEl.classList.remove('hidden'); return; }
+  if (!cn) { resultEl.textContent = '請填入客戶名稱'; resultEl.style.background='#fef3c7'; resultEl.style.color='#92400e'; resultEl.classList.remove('hidden'); return; }
+  if (!dl) { resultEl.textContent = '請選擇截止日'; resultEl.style.background='#fef3c7'; resultEl.style.color='#92400e'; resultEl.classList.remove('hidden'); return; }
+  if (!GAS_LOGGER_URL) { resultEl.textContent = 'GAS API 未設定'; resultEl.style.background='#fecaca'; resultEl.style.color='#991b1b'; resultEl.classList.remove('hidden'); return; }
 
   const operator = localStorage.getItem('wellySignoff') || '';
   const calTarget = localStorage.getItem('wellyCalTarget') || '';
@@ -2209,10 +2269,10 @@ document.getElementById('qrBtn').addEventListener('click', function() {
     operator: operator,
     calendarTarget: calTarget || operator,
     scenario: 'quick_reminder',
-    scenarioLabel: note || '快速提醒',
+    scenarioLabel: document.getElementById('qr_note').value.trim() || '快速提醒',
     clientName: cn,
-    keywords: kw,
-    count: count,
+    keywords: document.getElementById('qr_kw').value.trim(),
+    count: document.getElementById('qr_count').value,
     deadline: dl,
     note: '快速日曆提醒',
   };
@@ -2226,19 +2286,19 @@ document.getElementById('qrBtn').addEventListener('click', function() {
     body: JSON.stringify(payload),
     mode: 'no-cors',
   }).then(() => {
-    resultEl.textContent = '✅ 已送出！日曆提醒將建立在截止日當天。';
+    resultEl.textContent = '已送出！日曆提醒將建立在截止日當天';
     resultEl.style.background = '#d1fae5';
     resultEl.style.color = '#065f46';
     resultEl.classList.remove('hidden');
     this.disabled = false;
-    this.textContent = '⏰ 建立日曆提醒';
+    this.textContent = '建立日曆提醒';
   }).catch(() => {
-    resultEl.textContent = '❌ 送出失敗，請稍後再試';
+    resultEl.textContent = '送出失敗，請稍後再試';
     resultEl.style.background = '#fecaca';
     resultEl.style.color = '#991b1b';
     resultEl.classList.remove('hidden');
     this.disabled = false;
-    this.textContent = '⏰ 建立日曆提醒';
+    this.textContent = '建立日曆提醒';
   });
 });
 
