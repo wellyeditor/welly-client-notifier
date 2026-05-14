@@ -2212,18 +2212,33 @@ function parseReminderText() {
   const text = document.getElementById('qr_text').value;
   if (!text.trim()) return;
 
-  // 擷取客戶名稱：【OO公司】格式
-  const cnMatch = text.match(/【([^】]+?)】/);
-  // 擷取篇數：N 篇
+  // ─── 客戶名稱 ───
+  let clientName = '';
+  // 1. 「XX 您好」「XX您好」「Dear XX 您好」
+  const hiMatch = text.match(/(?:Dear\s+)?(.+?)(?:的夥伴們|們)?\s*您好/);
+  if (hiMatch) {
+    clientName = hiMatch[1].replace(/^Dear\s+/i, '').trim();
+  }
+  // 2. fallback：主旨格式【XX】SEO / 【XX】
+  if (!clientName) {
+    const subjMatch = text.match(/【([^】]+?)】(?:SEO|.*?確認|.*?上架)/);
+    if (subjMatch) clientName = subjMatch[1];
+  }
+
+  // ─── 關鍵字（核心關鍵字：XX） ───
+  const kwMatches = [...text.matchAll(/核心關鍵字[：:](.+)/g)].map(m => m[1].trim());
+
+  // ─── 篇數 ───
+  // 優先用「N 篇」，沒有就用關鍵字數量
   const countMatch = text.match(/(\d+)\s*篇/);
-  // 擷取關鍵字：多個【XX】
-  const kwMatches = [...text.matchAll(/【([^】]+?)】/g)].map(m => m[1]);
-  // 擷取日期：多種格式
+  const count = countMatch ? countMatch[1] : (kwMatches.length || '3');
+
+  // ─── 截止日 ───
   let dlDate = '';
   // 格式：2026/5/20、2026/05/20
   const fullDateMatch = text.match(/(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})/);
-  // 格式：5/20、05/20、5/20（二）
-  const shortDateMatch = text.match(/(\d{1,2})[\/](\d{1,2})(?:（[日一二三四五六]）)?(?:\s*前)?/);
+  // 格式：05/15（五）、5/20、05/20
+  const shortDateMatch = text.match(/(\d{1,2})\/(\d{1,2})(?:（[日一二三四五六]）)?/);
   if (fullDateMatch) {
     dlDate = `${fullDateMatch[1]}-${fullDateMatch[2].padStart(2,'0')}-${fullDateMatch[3].padStart(2,'0')}`;
   } else if (shortDateMatch) {
@@ -2232,17 +2247,17 @@ function parseReminderText() {
   }
 
   // 填入結果
-  document.getElementById('qr_cn').value = cnMatch ? cnMatch[1] : '';
-  document.getElementById('qr_kw').value = kwMatches.length > 1 ? kwMatches.slice(1).join('、') : (kwMatches[0] || '');
-  document.getElementById('qr_count').value = countMatch ? countMatch[1] : '3';
+  document.getElementById('qr_cn').value = clientName;
+  document.getElementById('qr_kw').value = kwMatches.join('、');
+  document.getElementById('qr_count').value = count;
   document.getElementById('qr_dl').value = dlDate;
 
-  // 猜情境
+  // ─── 猜情境 ───
   let guessNote = '';
   if (/架構/.test(text)) guessNote = '架構審稿';
   else if (/圖片/.test(text)) guessNote = '圖片審核';
   else if (/上架/.test(text)) guessNote = '上架';
-  else if (/小改|Meta|潛力/.test(text)) guessNote = '小改';
+  else if (/請調整為|預計調整為|潛力/.test(text)) guessNote = '小改';
   else if (/大改|優化調整/.test(text)) guessNote = '大改';
   else if (/修改.*版|第.*版/.test(text)) guessNote = '回稿修改';
   else if (/審稿|確認/.test(text)) guessNote = '審稿';
