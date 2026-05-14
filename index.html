@@ -2168,12 +2168,11 @@ async function checkLinkAccess(n) {
   if (docName) autoFillFromDocName(docName);
 }
 
-// 從 Google Doc 檔名自動填入關鍵字
+// 從 Google Doc 檔名自動填入關鍵字（追加，不重複）
 // 常見格式：「1.芬蘭必買 - 文章」「2.植牙費用 - 架構」「隆鼻推薦 - 文章」
 function autoFillFromDocName(name) {
   const kwEl = document.getElementById('f_kw');
-  // 只在關鍵字欄位為空時自動填入
-  if (!kwEl || kwEl.value.trim()) return;
+  if (!kwEl) return;
 
   // 去除前綴編號（1. 2. 01. 等）
   let cleaned = name.replace(/^\d+\.\s*/, '').trim();
@@ -2182,11 +2181,17 @@ function autoFillFromDocName(name) {
   // 去除 (copy) 之類的後綴
   cleaned = cleaned.replace(/\s*\(copy\).*$/i, '').trim();
 
-  if (cleaned && cleaned.length >= 2) {
-    kwEl.value = cleaned;
-    kwEl.style.borderColor = '#86efac';
-    setTimeout(() => { kwEl.style.borderColor = ''; }, 2000);
-  }
+  if (!cleaned || cleaned.length < 2) return;
+
+  // 檢查是否已存在（避免重複）
+  const existing = kwEl.value.trim();
+  const kwList = existing ? existing.split(/[、,，]+/).map(s => s.trim()) : [];
+  if (kwList.includes(cleaned)) return;
+
+  // 追加
+  kwEl.value = existing ? existing + '、' + cleaned : cleaned;
+  kwEl.style.borderColor = '#86efac';
+  setTimeout(() => { kwEl.style.borderColor = ''; }, 2000);
 }
 
 function checkImgFolderAccess() {
