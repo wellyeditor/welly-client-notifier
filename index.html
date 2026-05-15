@@ -1094,11 +1094,14 @@ function buildMetaBlock(items, isAfter, chgTitle, chgDesc, isClient) {
   return items.map(m => {
     const parts = [];
     parts.push(`核心關鍵字：${m.kw || '【關鍵字】'}`);
-    if (chgTitle) {
+    // 逐篇判斷：有填內容才輸出該區塊
+    const hasTitle = chgTitle && (m.oTitle.trim() || m.nTitle.trim());
+    const hasDesc = chgDesc && (m.oDesc.trim() || m.nDesc.trim());
+    if (hasTitle) {
       parts.push(`原標題及 SEO 標題（Meta Title）：${m.oTitle || '【原標題】'}`);
       parts.push(`${isAfter ? '現' : ''}標題及 SEO 標題（Meta Title）${verb}：${m.nTitle || '【新標題】'}`);
     }
-    if (chgDesc) {
+    if (hasDesc) {
       parts.push(`原前言及 SEO 描述（Meta Description）：${m.oDesc || '【原描述】'}`);
       parts.push(`${isAfter ? '現' : ''}前言及 SEO 描述（Meta Description）${verb}：${m.nDesc || '【新描述】'}`);
     }
@@ -1463,15 +1466,17 @@ function genWithHtml(id) {
       const isClientType = v.potSmType === 'client';
       const plainMeta = buildMetaBlock(v.metaItems, isAfterType, v.chgTitle, v.chgDesc, isClientType);
       const htmlMeta = v.metaItems.map(m => {
+        const hasTitle = v.chgTitle && (m.oTitle.trim() || m.nTitle.trim());
+        const hasDesc = v.chgDesc && (m.oDesc.trim() || m.nDesc.trim());
         let h = `<p style="margin:20px 0 8px;font-weight:700;color:#2c3e50">核心關鍵字：${escH(m.kw || '【關鍵字】')}</p>`;
         h += '<ul style="margin:6px 0 16px;padding-left:22px">';
-        if (v.chgTitle) {
+        if (hasTitle) {
           const labelNew = isAfterType ? '現' : '';
           const verbNew = isAfterType ? '' : (isClientType ? '請調整為' : '預計調整為');
           h += `<li style="margin:8px 0">原標題及 SEO 標題（Meta Title）：${escH(m.oTitle || '【原標題】')}</li>`;
           h += `<li style="margin:8px 0"><strong style="color:#2980b9">${labelNew}標題及 SEO 標題（Meta Title）${verbNew}：</strong>${escH(m.nTitle || '【新標題】')}</li>`;
         }
-        if (v.chgDesc) {
+        if (hasDesc) {
           const labelNew = isAfterType ? '現' : '';
           const verbNew = isAfterType ? '' : (isClientType ? '請調整為' : '預計調整為');
           h += `<li style="margin:8px 0">原前言及 SEO 描述（Meta Description）：${escH(m.oDesc || '【原描述】')}</li>`;
