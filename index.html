@@ -806,6 +806,30 @@ function updateMetaRows(n) {
         if (el && saved[i][f]) el.value = saved[i][f];
       });
     }
+    // Excel 整批貼上：在第一個欄位貼上多行內容時，自動分配到後續欄位
+    (function(idx) {
+      const fieldIds = [];
+      if (chgTitle) fieldIds.push('f_meta_oTitle' + idx, 'f_meta_nTitle' + idx);
+      if (chgDesc) fieldIds.push('f_meta_oDesc' + idx, 'f_meta_nDesc' + idx);
+      if (fieldIds.length < 2) return;
+      const firstEl = document.getElementById(fieldIds[0]);
+      if (!firstEl) return;
+      firstEl.addEventListener('paste', function(e) {
+        const paste = (e.clipboardData || window.clipboardData).getData('text');
+        // 用換行或 tab 分割（Excel 複製列 = \n，複製行 = \t）
+        const parts = paste.split(/[\n\t\r]+/).map(s => s.trim()).filter(Boolean);
+        if (parts.length >= 2) {
+          e.preventDefault();
+          for (let j = 0; j < fieldIds.length && j < parts.length; j++) {
+            const el = document.getElementById(fieldIds[j]);
+            if (el) { el.value = parts[j]; el.style.borderColor = '#86efac'; }
+          }
+          setTimeout(() => {
+            fieldIds.forEach(id => { const el = document.getElementById(id); if (el) el.style.borderColor = ''; });
+          }, 2000);
+        }
+      });
+    })(i);
   }
   currentMetaCount = n;
 }
