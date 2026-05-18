@@ -482,9 +482,10 @@
     </div>
 
     <div class="grid" id="basicFields">
-      <div class="field" id="wrap_cnField">
+      <div class="field" id="wrap_cnField" style="position:relative">
         <label>客戶名稱</label>
-        <input type="text" id="f_cn" placeholder="例：OO診所" />
+        <input type="text" id="f_cn" placeholder="輸入搜尋或手動填寫" autocomplete="off" />
+        <div id="cnDropdown" style="display:none;position:absolute;top:100%;left:0;right:0;z-index:50;background:#fff;border:1px solid #e2e4ec;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,.1);max-height:200px;overflow-y:auto;margin-top:2px"></div>
       </div>
       <div class="field" id="wrap_ctField">
         <label>聯絡人姓名</label>
@@ -2238,6 +2239,86 @@ function checkDocLinkAccess() {
   // 文檔只要有開放（檢視或編輯）就顯示綠燈
   checkGoogleAccess(url, dot, false);
 }
+
+// ─── 客戶名單（從 Google Sheet 載入） ─────────────────────────────────
+let clientListCache = [];
+async function loadClientList() {
+  if (!GAS_LOGGER_URL) return;
+  try {
+    const res = await fetch(GAS_LOGGER_URL + '?action=clients', { redirect: 'follow' });
+    const data = await res.json();
+    if (data.ok && data.clients) {
+      clientListCache = data.clients;
+    }
+  } catch(e) { /* 靜默失敗，手動輸入仍可用 */ }
+}
+// 頁面載入時拉取
+loadClientList();
+
+(function() {
+  const input = document.getElementById('f_cn');
+  const dropdown = document.getElementById('cnDropdown');
+  if (!input || !dropdown) return;
+
+  function renderDropdown(filter) {
+    const q = (filter || '').trim().toLowerCase();
+    const matches = q
+      ? clientListCache.filter(c => c.name.toLowerCase().includes(q))
+      : clientListCache;
+    if (!matches.length) { dropdown.style.display = 'none'; return; }
+    dropdown.innerHTML = matches.slice(0, 30).map(c =>
+      `<div class="cn-option" data-name="${escH(c.name)}" data-contact="${escH(c.contact)}" data-crm="${escH(c.crm)}"
+        style="padding:8px 12px;cursor:pointer;font-size:13px;border-bottom:1px solid #f1f1f1;transition:background .1s">
+        <div style="font-weight:600">${escH(c.name)}</div>
+        ${c.contact ? `<div style="font-size:11px;color:#94a3b8">${escH(c.contact)}</div>` : ''}
+      </div>`
+    ).join('');
+    dropdown.style.display = 'block';
+  }
+
+  input.addEventListener('focus', () => renderDropdown(input.value));
+  input.addEventListener('input', () => renderDropdown(input.value));
+
+  dropdown.addEventListener('click', function(e) {
+    const opt = e.target.closest('.cn-option');
+    if (!opt) return;
+    const name = opt.dataset.name;
+    const contact = opt.dataset.contact;
+    const crm = opt.dataset.crm;
+    input.value = name;
+    dropdown.style.display = 'none';
+    // 自動帶入窗口稱呼
+    if (contact) {
+      document.getElementById('f_ct').value = contact;
+    }
+    // 自動帶入 CRM 連結（如果有該欄位且有值）
+    if (crm) {
+      const crmEl = document.getElementById('f_crmLink');
+      if (crmEl) crmEl.value = crm;
+      const crmNameEl = document.getElementById('f_crmName');
+      if (crmNameEl && !crmNameEl.value.trim()) crmNameEl.value = name;
+    }
+    // 觸發後續連動（文檔名稱等）
+    input.dispatchEvent(new Event('input'));
+  });
+
+  // hover 效果
+  dropdown.addEventListener('mouseover', function(e) {
+    const opt = e.target.closest('.cn-option');
+    if (opt) opt.style.background = 'var(--ac-bg)';
+  });
+  dropdown.addEventListener('mouseout', function(e) {
+    const opt = e.target.closest('.cn-option');
+    if (opt) opt.style.background = '';
+  });
+
+  // 點擊外部關閉
+  document.addEventListener('click', function(e) {
+    if (!input.contains(e.target) && !dropdown.contains(e.target)) {
+      dropdown.style.display = 'none';
+    }
+  });
+})();
 
 // ─── 聯絡人快捷鍵 ──────────────────────────────────────────────────
 function fillPartnerName() {
