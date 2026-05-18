@@ -2270,13 +2270,14 @@ window.addEventListener('storage', (e) => { if (e.key === 'wellySignoff') loadCl
   function renderDropdown(filter) {
     const q = (filter || '').trim().toLowerCase();
     const matches = q
-      ? clientListCache.filter(c => c.name.toLowerCase().includes(q))
+      ? clientListCache.filter(c => c.name.toLowerCase().includes(q) || (c.fullName && c.fullName.toLowerCase().includes(q)))
       : clientListCache;
     if (!matches.length) { dropdown.style.display = 'none'; return; }
     dropdown.innerHTML = matches.slice(0, 30).map(c =>
-      `<div class="cn-option" data-name="${escH(c.name)}" data-contact="${escH(c.contact)}" data-crm="${escH(c.crm)}"
+      `<div class="cn-option" data-name="${escH(c.name)}" data-fullname="${escH(c.fullName || '')}" data-contact="${escH(c.contact)}" data-crm="${escH(c.crm)}"
         style="padding:8px 12px;cursor:pointer;font-size:13px;border-bottom:1px solid #f1f1f1;transition:background .1s">
         <div style="font-weight:600">${escH(c.name)}</div>
+        ${c.fullName ? `<div style="font-size:11px;color:#64748b">${escH(c.fullName)}</div>` : ''}
         ${c.contact ? `<div style="font-size:11px;color:#94a3b8">${escH(c.contact)}</div>` : ''}
       </div>`
     ).join('');
@@ -2290,6 +2291,7 @@ window.addEventListener('storage', (e) => { if (e.key === 'wellySignoff') loadCl
     const opt = e.target.closest('.cn-option');
     if (!opt) return;
     const name = opt.dataset.name;
+    const fullName = opt.dataset.fullname;
     const contact = opt.dataset.contact;
     const crm = opt.dataset.crm;
     input.value = name;
@@ -2298,12 +2300,12 @@ window.addEventListener('storage', (e) => { if (e.key === 'wellySignoff') loadCl
     if (contact) {
       document.getElementById('f_ct').value = contact;
     }
-    // 自動帶入 CRM 連結（如果有該欄位且有值）
+    // 自動帶入 CRM 完整名稱 + 連結
+    const crmNameEl = document.getElementById('f_crmName');
+    if (crmNameEl) crmNameEl.value = fullName || name;
     if (crm) {
       const crmEl = document.getElementById('f_crmLink');
       if (crmEl) crmEl.value = crm;
-      const crmNameEl = document.getElementById('f_crmName');
-      if (crmNameEl && !crmNameEl.value.trim()) crmNameEl.value = name;
     }
     // 觸發後續連動（文檔名稱等）
     input.dispatchEvent(new Event('input'));
