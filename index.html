@@ -1606,11 +1606,14 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   document.getElementById('f_cn').addEventListener('input', updateDocName);
 
-  // 署名設定儲存
+  // 署名設定儲存（變更時重新載入客戶名單）
+  let signoffTimer;
   nameInput.addEventListener('input', () => {
     const n = nameInput.value.trim();
     localStorage.setItem('wellySignoff', n);
     document.getElementById('f_sg').value = n;
+    clearTimeout(signoffTimer);
+    signoffTimer = setTimeout(() => loadClientList(), 600);
   });
 
   // 職務代理設定
@@ -2245,7 +2248,9 @@ let clientListCache = [];
 async function loadClientList() {
   if (!GAS_LOGGER_URL) return;
   try {
-    const res = await fetch(GAS_LOGGER_URL + '?action=clients', { redirect: 'follow' });
+    const operator = localStorage.getItem('wellySignoff') || '';
+    const url = GAS_LOGGER_URL + '?action=clients' + (operator ? '&operator=' + encodeURIComponent(operator) : '');
+    const res = await fetch(url, { redirect: 'follow' });
     const data = await res.json();
     if (data.ok && data.clients) {
       clientListCache = data.clients;
@@ -2254,6 +2259,8 @@ async function loadClientList() {
 }
 // 頁面載入時拉取
 loadClientList();
+// 署名變更時重新拉取
+window.addEventListener('storage', (e) => { if (e.key === 'wellySignoff') loadClientList(); });
 
 (function() {
   const input = document.getElementById('f_cn');
