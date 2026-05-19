@@ -1574,6 +1574,25 @@ function initSettingsUI() {
 // ─── 初始化 & 事件 ─────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
 
+  // 新功能公告（顯示一次）
+  if (!localStorage.getItem('wellyNotice_emailCC')) {
+    var overlay = document.createElement('div');
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:9999;display:flex;align-items:center;justify-content:center';
+    var box = document.createElement('div');
+    box.style.cssText = 'background:#fff;border-radius:16px;padding:28px 24px;max-width:380px;width:90%;box-shadow:0 8px 30px rgba(0,0,0,.15);text-align:center;font-family:inherit';
+    box.innerHTML = '<div style="font-size:20px;margin-bottom:12px">📧</div>'
+      + '<div style="font-size:15px;font-weight:700;color:#1e1e2e;margin-bottom:8px">新功能測試中</div>'
+      + '<div style="font-size:13px;color:#64748b;line-height:1.7;margin-bottom:18px">生成 Email 通知時會多出「收件人」和「CC」欄位，<br>系統會自動帶入對應的 email，方便你直接複製貼上。<br><span style="color:#94a3b8">此功能測試中，如有問題請回報昕芮</span></div>'
+      + '<button id="noticeOkBtn" style="background:linear-gradient(135deg,#7e9ab5,#8b5cf6);color:#fff;border:none;border-radius:10px;padding:10px 32px;font-size:14px;font-weight:600;cursor:pointer">知道了</button>';
+    overlay.appendChild(box);
+    document.body.appendChild(overlay);
+    document.getElementById('noticeOkBtn').addEventListener('click', function() {
+      localStorage.setItem('wellyNotice_emailCC', '1');
+      overlay.remove();
+    });
+    overlay.addEventListener('click', function(e) { if (e.target === overlay) { localStorage.setItem('wellyNotice_emailCC', '1'); overlay.remove(); } });
+  }
+
   initThemeUI();
   initSettingsUI();
 
