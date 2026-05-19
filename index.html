@@ -655,6 +655,21 @@
       <div class="out-header">
         <span class="out-title">📧 Email</span>
       </div>
+      <!-- 收件人 / CC -->
+      <div class="subj-row" id="emailToRow" style="display:none">
+        <div class="subj-top">
+          <span class="subj-label">收件人</span>
+          <button class="copy-mini email" id="copyToBtn">複製</button>
+        </div>
+        <div class="subj-box" id="outTo" style="font-size:12px;color:#334155;word-break:break-all"></div>
+      </div>
+      <div class="subj-row" id="emailCcRow" style="display:none">
+        <div class="subj-top">
+          <span class="subj-label">CC</span>
+          <button class="copy-mini email" id="copyCcBtn">複製</button>
+        </div>
+        <div class="subj-box" id="outCc" style="font-size:12px;color:#334155;word-break:break-all"></div>
+      </div>
       <div class="subj-row">
         <div class="subj-top">
           <span class="subj-label">主旨</span>
@@ -1623,8 +1638,11 @@ document.addEventListener('DOMContentLoaded', () => {
   calTargetInput.value = localStorage.getItem('wellyCalTarget') || '';
   leaveFromInput.value = localStorage.getItem('wellyLeaveFrom') || '';
   leaveToInput.value = localStorage.getItem('wellyLeaveTo') || '';
+  var _calTargetTimer = null;
   calTargetInput.addEventListener('input', () => {
     localStorage.setItem('wellyCalTarget', calTargetInput.value.trim());
+    clearTimeout(_calTargetTimer);
+    _calTargetTimer = setTimeout(() => loadClientList(), 600);
   });
   leaveFromInput.addEventListener('change', () => {
     localStorage.setItem('wellyLeaveFrom', leaveFromInput.value);
@@ -1938,6 +1956,21 @@ document.addEventListener('DOMContentLoaded', () => {
       // 存純文字備用
       document.getElementById('outEmail').dataset.plain = result.email;
       document.getElementById('outEmail').dataset.subject = result.subject || '';
+      // 自動帶入收件人 / CC
+      var ce = window._selectedClientEmail || {};
+      var toList = [ce.mainEmail, ce.ccEmail].filter(Boolean).join('; ');
+      var fixedCc = ['wen.huang@welly.tw', 'kira.lu@welly.tw', 'joanne.hsu@welly.tw'];
+      var ccAll = fixedCc.slice();
+      if (ce.pmEmail && fixedCc.indexOf(ce.pmEmail) < 0) ccAll.push(ce.pmEmail);
+      var ccStr = ccAll.join('; ');
+      var toRow = document.getElementById('emailToRow');
+      var ccRow = document.getElementById('emailCcRow');
+      if (toList) {
+        document.getElementById('outTo').textContent = toList;
+        toRow.style.display = '';
+      } else { toRow.style.display = 'none'; }
+      document.getElementById('outCc').textContent = ccStr;
+      ccRow.style.display = '';
     }
     if (result.line) {
       const v2 = vals();
@@ -2023,6 +2056,20 @@ document.addEventListener('DOMContentLoaded', () => {
     logDeadline(document.getElementById('scenarioSelect').value);
   });
 
+  // 複製收件人
+  document.getElementById('copyToBtn').addEventListener('click', async function() {
+    const s = document.getElementById('outTo').textContent;
+    await navigator.clipboard.writeText(s);
+    const orig = this.textContent; this.textContent = '✅';
+    setTimeout(() => { this.textContent = orig; }, 2000);
+  });
+  // 複製 CC
+  document.getElementById('copyCcBtn').addEventListener('click', async function() {
+    const s = document.getElementById('outCc').textContent;
+    await navigator.clipboard.writeText(s);
+    const orig = this.textContent; this.textContent = '✅';
+    setTimeout(() => { this.textContent = orig; }, 2000);
+  });
   // 複製主旨
   document.getElementById('copySubjBtn').addEventListener('click', async function() {
     const s = document.getElementById('outSubject').textContent;
@@ -2249,18 +2296,43 @@ async function loadClientList() {
   if (!GAS_LOGGER_URL) return;
   try {
     const operator = localStorage.getItem('wellySignoff') || '';
+    const calTarget = localStorage.getItem('wellyCalTarget') || '';
+
+    // 拉自己的客戶
     const url = GAS_LOGGER_URL + '?action=clients' + (operator ? '&operator=' + encodeURIComponent(operator) : '');
     const res = await fetch(url, { redirect: 'follow' });
     const data = await res.json();
+    var myClients = [];
     if (data.ok && data.clients) {
-      clientListCache = data.clients;
+      myClients = data.clients.map(c => Object.assign({}, c, { owner: '' }));
     }
+
+    // 職代模式：同時拉原負責人的客戶
+    var deputyClients = [];
+    if (calTarget && calTarget !== operator) {
+      try {
+        const url2 = GAS_LOGGER_URL + '?action=clients&operator=' + encodeURIComponent(calTarget);
+        const res2 = await fetch(url2, { redirect: 'follow' });
+        const data2 = await res2.json();
+        if (data2.ok && data2.clients) {
+          // 用 name 去重（避免跟自己的重複）
+          const myNames = new Set(myClients.map(c => c.name));
+          deputyClients = data2.clients
+            .filter(c => !myNames.has(c.name))
+            .map(c => Object.assign({}, c, { owner: calTarget }));
+        }
+      } catch(e2) { /* 職代名單載入失敗，不影響主流程 */ }
+    }
+
+    clientListCache = myClients.concat(deputyClients);
   } catch(e) { /* 靜默失敗，手動輸入仍可用 */ }
 }
 // 頁面載入時拉取
 loadClientList();
-// 署名變更時重新拉取
-window.addEventListener('storage', (e) => { if (e.key === 'wellySignoff') loadClientList(); });
+// 署名或職代變更時重新拉取
+window.addEventListener('storage', (e) => {
+  if (e.key === 'wellySignoff' || e.key === 'wellyCalTarget') loadClientList();
+});
 
 (function() {
   const input = document.getElementById('f_cn');
@@ -2274,9 +2346,9 @@ window.addEventListener('storage', (e) => { if (e.key === 'wellySignoff') loadCl
       : clientListCache;
     if (!matches.length) { dropdown.style.display = 'none'; return; }
     dropdown.innerHTML = matches.slice(0, 30).map(c =>
-      `<div class="cn-option" data-name="${escH(c.name)}" data-fullname="${escH(c.fullName || '')}" data-contact="${escH(c.contact)}" data-crm="${escH(c.crm)}"
+      `<div class="cn-option" data-name="${escH(c.name)}" data-fullname="${escH(c.fullName || '')}" data-contact="${escH(c.contact)}" data-crm="${escH(c.crm)}" data-main-email="${escH(c.mainEmail || '')}" data-cc-email="${escH(c.ccEmail || '')}" data-pm-email="${escH(c.pmEmail || '')}"
         style="padding:8px 12px;cursor:pointer;font-size:13px;border-bottom:1px solid #f1f1f1;transition:background .1s">
-        <div style="font-weight:600">${escH(c.name)}</div>
+        <div style="font-weight:600">${escH(c.name)}${c.owner ? ' <span style="font-size:10px;font-weight:400;background:#e0e7ff;color:#4338ca;padding:1px 6px;border-radius:4px;margin-left:6px">' + escH(c.owner) + '</span>' : ''}</div>
         ${c.fullName ? `<div style="font-size:11px;color:#64748b">${escH(c.fullName)}</div>` : ''}
         ${c.contact ? `<div style="font-size:11px;color:#94a3b8">${escH(c.contact)}</div>` : ''}
       </div>`
@@ -2307,6 +2379,12 @@ window.addEventListener('storage', (e) => { if (e.key === 'wellySignoff') loadCl
       const crmEl = document.getElementById('f_crmLink');
       if (crmEl) crmEl.value = crm;
     }
+    // 存 email 資料供生成通知時使用
+    window._selectedClientEmail = {
+      mainEmail: opt.dataset.mainEmail || '',
+      ccEmail: opt.dataset.ccEmail || '',
+      pmEmail: opt.dataset.pmEmail || ''
+    };
     // 觸發後續連動（文檔名稱等）
     input.dispatchEvent(new Event('input'));
   });
