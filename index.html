@@ -656,10 +656,10 @@
       <div class="out-header">
         <span class="out-title">📧 Email</span>
       </div>
-      <!-- 收件人 / CC -->
+      <!-- 收件人 / CC / 內部人員 / 職代 -->
       <div class="subj-row" id="emailToRow" style="display:none">
         <div class="subj-top">
-          <span class="subj-label">收件人</span>
+          <span class="subj-label">主要窗口</span>
           <button class="copy-mini email" id="copyToBtn">複製</button>
         </div>
         <div class="subj-box" id="outTo" style="font-size:12px;color:#334155;word-break:break-all"></div>
@@ -670,6 +670,20 @@
           <button class="copy-mini email" id="copyCcBtn">複製</button>
         </div>
         <div class="subj-box" id="outCc" style="font-size:12px;color:#334155;word-break:break-all"></div>
+      </div>
+      <div class="subj-row" id="emailInternalRow" style="display:none">
+        <div class="subj-top">
+          <span class="subj-label">內部人員</span>
+          <button class="copy-mini email" id="copyInternalBtn">複製</button>
+        </div>
+        <div class="subj-box" id="outInternal" style="font-size:12px;color:#334155;word-break:break-all"></div>
+      </div>
+      <div class="subj-row" id="emailDeputyRow" style="display:none">
+        <div class="subj-top">
+          <span class="subj-label">職代信箱</span>
+          <button class="copy-mini email" id="copyDeputyBtn">複製</button>
+        </div>
+        <div class="subj-box" id="outDeputy" style="font-size:12px;color:#334155;word-break:break-all"></div>
       </div>
       <div class="subj-row">
         <div class="subj-top">
@@ -2041,21 +2055,38 @@ document.addEventListener('DOMContentLoaded', () => {
       // 存純文字備用
       document.getElementById('outEmail').dataset.plain = result.email;
       document.getElementById('outEmail').dataset.subject = result.subject || '';
-      // 自動帶入收件人 / CC
+      // 自動帶入：主要窗口 / CC / 內部人員 / 職代信箱
       var ce = window._selectedClientEmail || {};
-      var toList = [ce.mainEmail, ce.ccEmail].filter(Boolean).join('; ');
       var fixedCc = ['wen.huang@welly.tw', 'kira.lu@welly.tw', 'joanne.hsu@welly.tw'];
-      var ccAll = fixedCc.slice();
-      if (ce.pmEmail && fixedCc.indexOf(ce.pmEmail) < 0) ccAll.push(ce.pmEmail);
-      var ccStr = ccAll.join('; ');
+
+      // 主要窗口
       var toRow = document.getElementById('emailToRow');
-      var ccRow = document.getElementById('emailCcRow');
-      if (toList) {
-        document.getElementById('outTo').textContent = toList;
+      if (ce.mainEmail) {
+        document.getElementById('outTo').textContent = ce.mainEmail;
         toRow.style.display = '';
       } else { toRow.style.display = 'none'; }
-      document.getElementById('outCc').textContent = ccStr;
-      ccRow.style.display = '';
+
+      // CC（文章CC）
+      var ccRow = document.getElementById('emailCcRow');
+      if (ce.ccEmail) {
+        document.getElementById('outCc').textContent = ce.ccEmail;
+        ccRow.style.display = '';
+      } else { ccRow.style.display = 'none'; }
+
+      // 內部人員（PM + 固定CC）
+      var internalList = fixedCc.slice();
+      if (ce.pmEmail && fixedCc.indexOf(ce.pmEmail) < 0) internalList.push(ce.pmEmail);
+      var internalRow = document.getElementById('emailInternalRow');
+      document.getElementById('outInternal').textContent = internalList.join('; ');
+      internalRow.style.display = '';
+
+      // 職代信箱（僅職代模式顯示）
+      var deputyRow = document.getElementById('emailDeputyRow');
+      var deputyEmail = window._deputyEmail || '';
+      if (deputyEmail) {
+        document.getElementById('outDeputy').textContent = deputyEmail;
+        deputyRow.style.display = '';
+      } else { deputyRow.style.display = 'none'; }
       // CRM 連結
       var crmLink = (document.getElementById('f_crmLink') || {}).value || '';
       var crmRow = document.getElementById('crmLinkRow');
@@ -2158,6 +2189,20 @@ document.addEventListener('DOMContentLoaded', () => {
   // 複製 CC
   document.getElementById('copyCcBtn').addEventListener('click', async function() {
     const s = document.getElementById('outCc').textContent;
+    await navigator.clipboard.writeText(s);
+    const orig = this.textContent; this.textContent = '✅';
+    setTimeout(() => { this.textContent = orig; }, 2000);
+  });
+  // 複製內部人員
+  document.getElementById('copyInternalBtn').addEventListener('click', async function() {
+    const s = document.getElementById('outInternal').textContent;
+    await navigator.clipboard.writeText(s);
+    const orig = this.textContent; this.textContent = '✅';
+    setTimeout(() => { this.textContent = orig; }, 2000);
+  });
+  // 複製職代信箱
+  document.getElementById('copyDeputyBtn').addEventListener('click', async function() {
+    const s = document.getElementById('outDeputy').textContent;
     await navigator.clipboard.writeText(s);
     const orig = this.textContent; this.textContent = '✅';
     setTimeout(() => { this.textContent = orig; }, 2000);
@@ -2401,6 +2446,7 @@ async function loadClientList() {
 
     // 職代模式：同時拉原負責人的客戶
     var deputyClients = [];
+    window._deputyEmail = '';
     if (calTarget && calTarget !== operator) {
       try {
         const url2 = GAS_LOGGER_URL + '?action=clients&operator=' + encodeURIComponent(calTarget);
@@ -2413,6 +2459,8 @@ async function loadClientList() {
             .filter(c => !myNames.has(c.name))
             .map(c => Object.assign({}, c, { owner: calTarget }));
         }
+        // 儲存職代本人的信箱（GAS 回傳）
+        if (data2.operatorEmail) window._deputyEmail = data2.operatorEmail;
       } catch(e2) { /* 職代名單載入失敗，不影響主流程 */ }
     }
 
