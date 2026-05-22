@@ -704,9 +704,9 @@
     </div>
 
     <!-- CRM 連結 -->
-    <div id="crmLinkRow" style="display:none;text-align:center;margin-top:6px">
-      <a id="crmLinkBtn" href="#" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:6px;font-size:13px;color:#6366f1;text-decoration:none;font-weight:600;padding:10px 20px;background:#f0f0ff;border-radius:10px;transition:background .15s">
-        <span style="font-size:15px">📋</span> 前往 CRM 更新文章狀態
+    <div id="crmLinkRow" style="display:none;text-align:center;margin-top:10px">
+      <a id="crmLinkBtn" href="#" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:8px;font-size:13px;color:#fff;text-decoration:none;font-weight:700;padding:12px 24px;background:linear-gradient(135deg,var(--ac),var(--ac-grad));border-radius:12px;box-shadow:0 3px 10px var(--ac-shadow);transition:transform .15s,box-shadow .15s;letter-spacing:.3px" onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 5px 16px var(--ac-shadow)'" onmouseout="this.style.transform='';this.style.boxShadow='0 3px 10px var(--ac-shadow)'">
+        📋 前往 CRM 更新文章狀態
       </a>
     </div>
   </div>
@@ -1663,26 +1663,48 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   document.getElementById('f_cn').addEventListener('input', updateDocName);
 
-  // 更換客戶時清空相關欄位
+  // 更換客戶時清空相關欄位（清空名稱 或 從 dropdown 選了不同客戶都觸發）
   var _prevClient = document.getElementById('f_cn').value;
+  function clearClientFields() {
+    ['f_ct','f_crmName','f_crmLink','f_kw','f_dl','f_docName','f_docLink','f_imgFolder','f_pubDate','f_replyDl'].forEach(function(id) {
+      var el = document.getElementById(id);
+      if (el) el.value = '';
+    });
+    document.getElementById('f_count').value = '3';
+    document.getElementById('f_ver').value = '2';
+    // 清空動態連結欄位
+    var linkContainer = document.getElementById('linkRows');
+    if (linkContainer) {
+      linkContainer.querySelectorAll('input').forEach(function(inp) { inp.value = ''; });
+    }
+    // 清空動態 Meta 欄位
+    var metaContainer = document.getElementById('metaRows');
+    if (metaContainer) {
+      metaContainer.querySelectorAll('input').forEach(function(inp) { inp.value = ''; });
+    }
+    window._selectedClientEmail = null;
+    document.getElementById('outputSection').classList.add('hidden');
+  }
   document.getElementById('f_cn').addEventListener('input', function() {
     var cur = this.value.trim();
     if (cur !== _prevClient) {
+      // 清空時重置所有欄位
+      if (!cur) clearClientFields();
       _prevClient = cur;
-      // 只在清空或手動輸入時重置（dropdown 選取會自動帶入正確值）
-      if (!cur) {
-        ['f_ct','f_crmName','f_crmLink','f_kw','f_dl','f_docName','f_docLink','f_imgFolder'].forEach(function(id) {
-          var el = document.getElementById(id);
-          if (el) el.value = '';
-        });
-        document.getElementById('f_count').value = '3';
-        document.getElementById('f_ver').value = '2';
-        window._selectedClientEmail = null;
-        // 隱藏輸出區
-        document.getElementById('outputSection').classList.add('hidden');
-      }
     }
   });
+  // dropdown 選取時：如果選了不同客戶，先清再帶入新值
+  var origDropdownClick = null;
+  var cnDropdown = document.getElementById('cnDropdown');
+  cnDropdown.addEventListener('click', function(e) {
+    var opt = e.target.closest('.cn-option');
+    if (!opt) return;
+    var newName = opt.dataset.name;
+    if (newName !== _prevClient) {
+      clearClientFields();
+      _prevClient = newName;
+    }
+  }, true); // capture phase, runs before the existing handler
 
   // 署名設定儲存（變更時重新載入客戶名單）
   let signoffTimer;
