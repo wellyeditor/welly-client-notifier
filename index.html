@@ -593,6 +593,13 @@
       </div>
     </div>
 
+    <!-- 文字＋臨時首圖（pub_links 專用） -->
+      <div class="field span2 hidden" id="wrap_tempImg">
+        <div class="checkbox-group">
+          <label><input type="checkbox" id="ct_tempImg"> 文字＋臨時首圖（正式圖片待補）</label>
+        </div>
+      </div>
+
     <!-- 內部群組訊息欄位（pub_links 專用） -->
     <div class="link-section hidden" id="wrap_groupMsg">
       <div class="divider"></div>
@@ -747,7 +754,7 @@ const SC = {
   img_during_review:   { email:false, line:true,  links:false, ver:false, meta:false, doc:false, noDl:true,  noCount:false },
   client_pub:          { email:true,  line:true,  links:true,  ver:false, meta:false, doc:false, noDl:false, noCount:true,  contentType:true,  ctAvail:[0,1,1,1], ctDefaults:[0,1,0,0], imgFolder:true },
   rev_pub:             { email:true,  line:true,  links:true,  ver:true,  meta:false, doc:false, noDl:false, noCount:false, contentType:true,  ctAvail:[0,1,1,1], ctDefaults:[0,1,0,0], pubOptions:true },
-  pub_links:           { email:true,  line:true,  links:true,  ver:false, meta:false, doc:false, noDl:true,  noCount:false, contentType:true,  ctAvail:[0,1,1,1], ctDefaults:[0,1,0,0], linkTitle:true, groupMsg:true },
+  pub_links:           { email:true,  line:true,  links:true,  ver:false, meta:false, doc:false, noDl:true,  noCount:false, contentType:true,  ctAvail:[0,1,1,1], ctDefaults:[0,1,0,0], linkTitle:true, groupMsg:true, tempImg:true },
   pot_sm:              { email:true,  line:true,  links:false, ver:false, meta:true,  doc:false, noDl:false, noCount:false, potOptions:true, potSmType:true },
   pot_lg:              { email:true,  line:true,  links:false, ver:false, meta:false, doc:true,  noDl:false, noCount:false, potLgType:true },
 };
@@ -1066,6 +1073,7 @@ function vals() {
     noEmail: document.getElementById('ct_noEmail').checked,
     textFirst: document.getElementById('ct_textFirst').checked,
     pubNotes: document.getElementById('ct_pubNotes').checked,
+    tempImg: document.getElementById('ct_tempImg').checked,
     imgFolder: document.getElementById('f_imgFolder').value.trim(),
     crmName: document.getElementById('f_crmName').value.trim(),
     crmLink: document.getElementById('f_crmLink').value.trim(),
@@ -1410,10 +1418,13 @@ function gen(id) {
       const groupHtmlHeader = `${escH(pubDateFmt)}${crmHtml}上架 ${escH(v.count)} 篇文章：`;
       const groupHtml = `${groupHtmlHeader}<br>${groupHtmlLines.join('<br>')}`;
 
+      const tempImgNote = v.tempImg ? '、臨時首圖' : '';
+      const tempImgAfter = v.tempImg ? '\n\n目前文章圖片為臨時首圖，正式圖片待製作完成後會再提供給您審核。' : '';
+      const tempImgLineAfter = v.tempImg ? '（目前為臨時首圖，正式圖片完成後會再提供審核）' : '';
       return {
         subject: `【${v.cn}】SEO 專文上架連結提供 - Welly`,
-        email: `${hi}\n\n${kwFmt} ${v.count} 篇 SEO ${cd}已上架至網站，連結如下：\n${lb}\n\n以上請查收，若文章上架內容有問題再請讓我們知道，感謝！\n\n${v.sg}`,
-        line: `${kwFmt} ${v.count} 篇 SEO ${cd}已上架至網站，連結檢附於信件中，請查收，若有問題再煩請與我們聯繫，謝謝！`,
+        email: `${hi}\n\n${kwFmt} ${v.count} 篇 SEO ${cd}${tempImgNote}已上架至網站，連結如下：\n${lb}${tempImgAfter}\n\n以上請查收，若文章上架內容有問題再請讓我們知道，感謝！\n\n${v.sg}`,
+        line: `${kwFmt} ${v.count} 篇 SEO ${cd}${tempImgNote}已上架至網站，連結檢附於信件中，請查收${tempImgLineAfter}，若有問題再煩請與我們聯繫，謝謝！`,
         groupMsg: groupBody,
         groupMsgHtml: groupHtml,
       };
@@ -1966,6 +1977,10 @@ document.addEventListener('DOMContentLoaded', () => {
       else badges.innerHTML += `<span class="badge" style="color:#94a3b8;border-color:#cbd5e1;background:#f8fafc">Email 不寄</span>`;
       if (sc.line) badges.innerHTML += `<span class="badge" style="color:#22c55e;border-color:#86efac;background:#f0fdf4">💬 LINE</span>`;
     };
+
+    // 文字＋臨時首圖 checkbox（pub_links 專用）
+    document.getElementById('wrap_tempImg').classList.toggle('hidden', !sc.tempImg);
+    if (!sc.tempImg) document.getElementById('ct_tempImg').checked = false;
 
     // 內部群組訊息欄位（pub_links 專用）
     document.getElementById('wrap_groupMsg').classList.toggle('hidden', !sc.groupMsg);
