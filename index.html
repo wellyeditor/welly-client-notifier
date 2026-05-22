@@ -678,13 +678,7 @@
         </div>
         <div class="subj-box" id="outInternal" style="font-size:12px;color:#334155;word-break:break-all"></div>
       </div>
-      <div class="subj-row" id="emailDeputyRow" style="display:none">
-        <div class="subj-top">
-          <span class="subj-label">職代信箱</span>
-          <button class="copy-mini email" id="copyDeputyBtn">複製</button>
-        </div>
-        <div class="subj-box" id="outDeputy" style="font-size:12px;color:#334155;word-break:break-all"></div>
-      </div>
+      <!-- 職代信箱已合併至內部人員欄 -->
       <div class="subj-row">
         <div class="subj-top">
           <span class="subj-label">主旨</span>
@@ -2073,20 +2067,14 @@ document.addEventListener('DOMContentLoaded', () => {
         ccRow.style.display = '';
       } else { ccRow.style.display = 'none'; }
 
-      // 內部人員（PM + 固定CC）
+      // 內部人員（PM + 固定CC + 職代信箱）
       var internalList = fixedCc.slice();
       if (ce.pmEmail && fixedCc.indexOf(ce.pmEmail) < 0) internalList.push(ce.pmEmail);
+      var deputyEmail = window._deputyEmail || '';
+      if (deputyEmail && internalList.indexOf(deputyEmail) < 0) internalList.push(deputyEmail);
       var internalRow = document.getElementById('emailInternalRow');
       document.getElementById('outInternal').textContent = internalList.join('; ');
       internalRow.style.display = '';
-
-      // 職代信箱（僅職代模式顯示）
-      var deputyRow = document.getElementById('emailDeputyRow');
-      var deputyEmail = window._deputyEmail || '';
-      if (deputyEmail) {
-        document.getElementById('outDeputy').textContent = deputyEmail;
-        deputyRow.style.display = '';
-      } else { deputyRow.style.display = 'none'; }
       // CRM 連結
       var crmLink = (document.getElementById('f_crmLink') || {}).value || '';
       var crmRow = document.getElementById('crmLinkRow');
@@ -2200,13 +2188,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const orig = this.textContent; this.textContent = '✅';
     setTimeout(() => { this.textContent = orig; }, 2000);
   });
-  // 複製職代信箱
-  document.getElementById('copyDeputyBtn').addEventListener('click', async function() {
-    const s = document.getElementById('outDeputy').textContent;
-    await navigator.clipboard.writeText(s);
-    const orig = this.textContent; this.textContent = '✅';
-    setTimeout(() => { this.textContent = orig; }, 2000);
-  });
+  // 職代信箱已合併至內部人員，無需獨立複製按鈕
   // 複製主旨
   document.getElementById('copySubjBtn').addEventListener('click', async function() {
     const s = document.getElementById('outSubject').textContent;
