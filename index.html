@@ -182,6 +182,22 @@
   }
   .checkbox-group input[type="checkbox"] { width: 14px; height: 14px; accent-color: var(--ac); }
 
+  /* 特殊 toggle（臨時首圖等） */
+  .special-toggle {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 14px; border-radius: 10px;
+    border: 1.5px dashed #e2aa3b; background: #fffbf0;
+    cursor: pointer; user-select: none; transition: all .2s;
+    font-size: 12.5px; font-weight: 600; color: #92700c;
+  }
+  .special-toggle:hover { background: #fff5db; border-color: #d4952b; }
+  .special-toggle:has(input:checked) {
+    background: #fff0c2; border-style: solid; border-color: #e2aa3b; color: #6b4f00;
+  }
+  .special-toggle input[type="checkbox"] { width: 15px; height: 15px; accent-color: #d4952b; }
+  .special-toggle .toggle-icon { font-size: 15px; line-height: 1; }
+  .special-toggle .toggle-desc { font-size: 11px; font-weight: 400; color: #a8860f; margin-left: auto; }
+
   /* Radio chip 群組（通知類型等） */
   .radio-pills { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
   .radio-pills label {
@@ -528,9 +544,12 @@
         </div>
       </div>
       <div class="field span2 hidden" id="wrap_tempImg">
-        <div class="checkbox-group">
-          <label><input type="checkbox" id="ct_tempImg"> 文字＋臨時首圖（正式圖片待補）</label>
-        </div>
+        <label class="special-toggle">
+          <input type="checkbox" id="ct_tempImg">
+          <span class="toggle-icon">🖼️</span>
+          文字＋臨時首圖上架
+          <span class="toggle-desc">正式圖片待補</span>
+        </label>
       </div>
       <div class="field span2" id="wrap_kw">
         <label>核心關鍵字 <span style="font-weight:400;color:#94a3b8;font-size:11px">按 Enter 加下一個</span></label>
