@@ -472,9 +472,10 @@
     <div class="hidden" id="wrap_potOptions" style="margin-top:10px">
       <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
         <label style="font-size:13px;font-weight:600;color:#475569;white-space:nowrap">調整項目</label>
+        <span style="font-size:12px;color:#94a3b8">填了哪些欄位就自動帶入，不需手動勾選</span>
+        <input type="checkbox" id="pot_chgTitle" checked style="display:none">
+        <input type="checkbox" id="pot_chgDesc" checked style="display:none">
         <div class="checkbox-group">
-          <label><input type="checkbox" id="pot_chgTitle" checked> 調整標題</label>
-          <label><input type="checkbox" id="pot_chgDesc" checked> 調整前言</label>
           <label><input type="checkbox" id="pot_updateDate" checked> 更新日期</label>
         </div>
       </div>
@@ -682,6 +683,11 @@
         <button class="copy-btn email" id="copyEmailBtn">複製內文</button>
       </div>
       <div class="body-pre email" id="outEmail" style="line-height:1.85"></div>
+      <div id="crmLinkRow" style="display:none;margin-top:12px;padding-top:10px;border-top:1px solid #f1f1f1">
+        <a id="crmLinkBtn" href="#" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:#6366f1;text-decoration:none;font-weight:600;padding:6px 12px;background:#f0f0ff;border-radius:8px;transition:background .15s">
+          <span style="font-size:14px">📋</span> 前往 CRM 更新文章狀態
+        </a>
+      </div>
     </div>
 
     <!-- LINE -->
@@ -1000,8 +1006,23 @@ function vals() {
     dl: fmtDate(dl) || '【截止日期】',
     sg: document.getElementById('f_sg').value.trim() || '【署名】',
     ver: document.getElementById('f_ver').value || '2',
-    chgTitle: document.getElementById('pot_chgTitle').checked,
-    chgDesc: document.getElementById('pot_chgDesc').checked,
+    chgTitle: (function() {
+      // 自動偵測：只要任一篇有填標題欄位就算有調整標題
+      for (var i = 1; i <= currentMetaCount; i++) {
+        var oT = (document.getElementById('f_meta_oTitle' + i) || {}).value || '';
+        var nT = (document.getElementById('f_meta_nTitle' + i) || {}).value || '';
+        if (oT.trim() || nT.trim()) return true;
+      }
+      return false;
+    })(),
+    chgDesc: (function() {
+      for (var i = 1; i <= currentMetaCount; i++) {
+        var oD = (document.getElementById('f_meta_oDesc' + i) || {}).value || '';
+        var nD = (document.getElementById('f_meta_nDesc' + i) || {}).value || '';
+        if (oD.trim() || nD.trim()) return true;
+      }
+      return false;
+    })(),
     updateDate: document.getElementById('pot_updateDate').checked,
     metaItems: (function() {
       const kwStr = document.getElementById('f_kw').value.trim();
@@ -1640,6 +1661,27 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   document.getElementById('f_cn').addEventListener('input', updateDocName);
 
+  // 更換客戶時清空相關欄位
+  var _prevClient = document.getElementById('f_cn').value;
+  document.getElementById('f_cn').addEventListener('input', function() {
+    var cur = this.value.trim();
+    if (cur !== _prevClient) {
+      _prevClient = cur;
+      // 只在清空或手動輸入時重置（dropdown 選取會自動帶入正確值）
+      if (!cur) {
+        ['f_ct','f_crmName','f_crmLink','f_kw','f_dl','f_docName','f_docLink','f_imgFolder'].forEach(function(id) {
+          var el = document.getElementById(id);
+          if (el) el.value = '';
+        });
+        document.getElementById('f_count').value = '3';
+        document.getElementById('f_ver').value = '2';
+        window._selectedClientEmail = null;
+        // 隱藏輸出區
+        document.getElementById('outputSection').classList.add('hidden');
+      }
+    }
+  });
+
   // 署名設定儲存（變更時重新載入客戶名單）
   let signoffTimer;
   nameInput.addEventListener('input', () => {
@@ -1990,6 +2032,13 @@ document.addEventListener('DOMContentLoaded', () => {
       } else { toRow.style.display = 'none'; }
       document.getElementById('outCc').textContent = ccStr;
       ccRow.style.display = '';
+      // CRM 連結
+      var crmLink = (document.getElementById('f_crmLink') || {}).value || '';
+      var crmRow = document.getElementById('crmLinkRow');
+      if (crmLink) {
+        document.getElementById('crmLinkBtn').href = crmLink;
+        crmRow.style.display = '';
+      } else { crmRow.style.display = 'none'; }
     }
     if (result.line) {
       const v2 = vals();
