@@ -356,6 +356,14 @@
         <div class="theme-name" id="themeName"></div>
       </div>
 
+      <div class="settings-section">
+        <div class="settings-section-title">客戶名單管理</div>
+        <a href="https://docs.google.com/spreadsheets/d/1EaDpjRZthfHeDLGfocKDTL52ze7rNRmIBcB8cwjBazg/edit" target="_blank" rel="noopener" class="feedback-btn" style="background:#fffbf0;border-color:#e2aa3b;color:#6b4f00">
+          📋 編輯我的客戶名單
+        </a>
+        <div style="font-size:12px;color:#94a3b8;margin-top:6px">新增、修改手上客戶資料（簡稱、CRM、Email 等），儲存後工具自動同步</div>
+      </div>
+
       <div class="settings-section" style="margin-bottom:0">
         <div class="settings-section-title">回饋與許願</div>
         <a href="https://docs.google.com/spreadsheets/d/15Ewu_Uc67sGxqLGR7zvaYW7nU2yBOBPvXB0LvN1CY-Y/edit?gid=1392507832#gid=1392507832" target="_blank" rel="noopener" class="feedback-btn">
@@ -1632,25 +1640,6 @@ function initSettingsUI() {
 
 // ─── 初始化 & 事件 ─────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
-
-  // 新功能公告（顯示一次）
-  if (!localStorage.getItem('wellyNotice_emailCC')) {
-    var overlay = document.createElement('div');
-    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:9999;display:flex;align-items:center;justify-content:center';
-    var box = document.createElement('div');
-    box.style.cssText = 'background:#fff;border-radius:16px;padding:28px 24px;max-width:380px;width:90%;box-shadow:0 8px 30px rgba(0,0,0,.15);text-align:center;font-family:inherit';
-    box.innerHTML = '<div style="font-size:20px;margin-bottom:12px">📧</div>'
-      + '<div style="font-size:15px;font-weight:700;color:#1e1e2e;margin-bottom:8px">新功能預告</div>'
-      + '<div style="font-size:13px;color:#64748b;line-height:1.7;margin-bottom:18px">Email 通知將新增「收件人」和「CC」自動帶入功能，<br>目前測試中，還沒正式上線，敬請期待！<br><span style="color:#94a3b8">如有任何問題歡迎回報昕芮</span></div>'
-      + '<button id="noticeOkBtn" style="background:linear-gradient(135deg,#7e9ab5,#8b5cf6);color:#fff;border:none;border-radius:10px;padding:10px 32px;font-size:14px;font-weight:600;cursor:pointer">知道了</button>';
-    overlay.appendChild(box);
-    document.body.appendChild(overlay);
-    document.getElementById('noticeOkBtn').addEventListener('click', function() {
-      localStorage.setItem('wellyNotice_emailCC', '1');
-      overlay.remove();
-    });
-    overlay.addEventListener('click', function(e) { if (e.target === overlay) { localStorage.setItem('wellyNotice_emailCC', '1'); overlay.remove(); } });
-  }
 
   initThemeUI();
   initSettingsUI();
