@@ -462,7 +462,8 @@
           <label><input type="radio" name="potSmType" value="client" checked>客戶自己改</label>
           <label><input type="radio" name="potSmType" value="before">先通知後改</label>
           <label><input type="radio" name="potSmType" value="after">先改後通知</label>
-          <label><input type="radio" name="potSmType" value="noemail">無需寄信</label>
+          <label><input type="radio" name="potSmType" value="noemail">無需寄信（純通知）</label>
+          <label><input type="radio" name="potSmType" value="noemail_detail">無需寄信（附調整內容）</label>
         </div>
       </div>
     </div>
@@ -1455,7 +1456,7 @@ function gen(id) {
     }
     case 'pot_sm': {
       const t = v.potSmType;
-      const isAfter = t === 'after' || t === 'noemail';
+      const isAfter = t === 'after' || t === 'noemail' || t === 'noemail_detail';
       const dateText = t === 'client' ? (v.updateDate ? '，並更新文章日期' : '') : (v.updateDate ? '，並更新日期' : '');
       const metaBlock = buildMetaBlock(v.metaItems, isAfter, v.chgTitle, v.chgDesc, t === 'client');
       let emailBody = null;
@@ -1469,8 +1470,11 @@ function gen(id) {
       } else if (t === 'after') {
         emailBody = `${hi}\n\n文章上線至今，我們已經取得一些關鍵字曝光數據，為了幫助文章流量與排名持續成長，我們調整了${kwFmt} ${v.count} 篇 SEO 文章的${potChangeText}${dateText}。\n\n${metaBlock}\n\n以上提供給您知悉，若有任何問題，請再與我們聯繫，謝謝！\n\n${v.sg}`;
         lineBody = `文章上線至今，我們已經取得一些關鍵字曝光數據，為了幫助文章流量與排名持續成長，我們根據潛力關鍵字調整了${kwFmt} ${v.count} 篇 SEO 文章的${potChangeText}${dateText}。\n\n信件稍早已經同步寄送至您的信箱，以上，若有問題再請跟我們聯繫，謝謝！`;
+      } else if (t === 'noemail_detail') {
+        // 無需寄信 — 附調整內容
+        lineBody = `文章上線至今，我們已經取得一些關鍵字曝光數據，為了幫助文章流量與排名持續成長，我們根據潛力關鍵字調整了${kwFmt} ${v.count} 篇 SEO 文章的${potChangeText}${dateText}，調整內容如下：\n\n${metaBlock}\n\n以上提供給您知悉，若有問題再請跟我們聯繫，謝謝！`;
       } else {
-        // noemail
+        // noemail — 純通知
         lineBody = `文章上線至今，我們已經取得一些關鍵字曝光數據，為了幫助文章流量與排名持續成長，我們根據潛力關鍵字調整了${kwFmt} ${v.count} 篇 SEO 文章的${potChangeText}${dateText}。\n\n以上，若有問題再請跟我們聯繫，謝謝！`;
       }
       return { subject: emailBody ? `【${v.cn}】SEO 專文優化調整 - Welly` : null, email: emailBody, line: lineBody };
@@ -1546,7 +1550,7 @@ function genWithHtml(id) {
     }
     // 小改 Meta 區塊：純文字 → HTML 列點排版
     if (v.metaItems && v.metaItems.length && sc.meta) {
-      const isAfterType = v.potSmType === 'after' || v.potSmType === 'noemail';
+      const isAfterType = v.potSmType === 'after' || v.potSmType === 'noemail' || v.potSmType === 'noemail_detail';
       const isClientType = v.potSmType === 'client';
       const plainMeta = buildMetaBlock(v.metaItems, isAfterType, v.chgTitle, v.chgDesc, isClientType);
       const htmlMeta = v.metaItems.map(m => {
@@ -1877,7 +1881,7 @@ document.addEventListener('DOMContentLoaded', () => {
       // radio 切換時動態調整欄位
       const applyPotSmType = () => {
         const t = (document.querySelector('input[name="potSmType"]:checked') || {}).value || 'client';
-        const hasEmail = t !== 'noemail';
+        const hasEmail = t !== 'noemail' && t !== 'noemail_detail';
         const hasDl = t === 'client' || t === 'before';
         const hasMeta = t !== 'noemail';
         document.getElementById('wrap_dl').classList.toggle('hidden', !hasDl);
