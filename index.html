@@ -183,17 +183,25 @@
   .checkbox-group input[type="checkbox"] { width: 14px; height: 14px; accent-color: var(--ac); }
 
   /* 特殊 toggle（臨時首圖等） */
-  /* 篇數 pill 按鈕 */
-  .count-pills { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 4px; }
-  .count-pill {
-    width: 36px; height: 36px; border-radius: 10px;
-    border: 1.5px solid #e2e4ec; background: #fff;
-    font-size: 13px; font-weight: 600; color: #64748b;
+  /* 篇數 stepper */
+  .count-stepper { display: flex; align-items: center; gap: 0; margin-top: 4px; }
+  .count-stepper button {
+    width: 40px; height: 40px; border: 1.5px solid #e2e4ec; background: #fff;
+    font-size: 20px; font-weight: 600; color: #64748b;
     cursor: pointer; transition: all .15s; user-select: none;
     display: flex; align-items: center; justify-content: center;
   }
-  .count-pill:hover { background: var(--ac-hover); color: var(--ac-dark); border-color: var(--ac-ring); }
-  .count-pill.active { background: var(--ac-bg); border-color: var(--ac); color: var(--ac-dark); font-weight: 700; }
+  .count-stepper button:first-child { border-radius: 10px 0 0 10px; }
+  .count-stepper button:last-child { border-radius: 0 10px 10px 0; }
+  .count-stepper button:hover { background: var(--ac-hover); color: var(--ac-dark); border-color: var(--ac-ring); }
+  .count-stepper button:active { background: var(--ac-bg); }
+  .count-stepper input {
+    width: 48px; height: 40px; border: 1.5px solid #e2e4ec; border-left: none; border-right: none;
+    text-align: center; font-size: 15px; font-weight: 700; color: #1e1e2e;
+    outline: none; -moz-appearance: textfield;
+  }
+  .count-stepper input::-webkit-inner-spin-button,
+  .count-stepper input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
 
   .special-toggle {
     display: flex; align-items: center; gap: 8px;
@@ -575,17 +583,13 @@
         <label>核心關鍵字 <span style="font-weight:400;color:#94a3b8;font-size:11px">按 Enter 加下一個</span></label>
         <input type="text" id="f_kw" placeholder="例：植牙、全口重建" />
       </div>
-      <div class="field span2" id="wrap_count">
+      <div class="field" id="wrap_count">
         <label>篇數</label>
-        <div class="count-pills" id="countPills">
-          <button type="button" class="count-pill" data-val="1">1</button>
-          <button type="button" class="count-pill" data-val="2">2</button>
-          <button type="button" class="count-pill active" data-val="3">3</button>
-          <button type="button" class="count-pill" data-val="4">4</button>
-          <button type="button" class="count-pill" data-val="5">5</button>
-          <button type="button" class="count-pill" data-val="6">6</button>
+        <div class="count-stepper" id="countStepper">
+          <button type="button" id="countMinus">−</button>
+          <input type="number" id="f_count" value="3" min="1" max="20" />
+          <button type="button" id="countPlus">+</button>
         </div>
-        <input type="hidden" id="f_count" value="3" />
         <select id="f_count_select" class="hidden" style="width:100%;padding:6px 8px;border:1px solid #d1d5db;border-radius:6px;font-size:14px">
           <option value="1">1 篇</option><option value="2">2 篇</option><option value="3" selected>3 篇</option>
           <option value="4">4 篇</option><option value="5">5 篇</option><option value="6">6 篇</option>
@@ -1703,24 +1707,17 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // 篇數 pill 按鈕
-  function syncCountPills(val) {
-    document.querySelectorAll('.count-pill').forEach(btn => {
-      btn.classList.toggle('active', btn.dataset.val === String(val));
-    });
-  }
-  document.getElementById('countPills').addEventListener('click', function(e) {
-    const btn = e.target.closest('.count-pill');
-    if (!btn) return;
-    const val = btn.dataset.val;
-    document.getElementById('f_count').value = val;
-    syncCountPills(val);
-    // 觸發連結列數更新
+  // 篇數 stepper
+  function stepCount(delta) {
+    const el = document.getElementById('f_count');
+    const val = Math.max(1, Math.min(20, (parseInt(el.value) || 3) + delta));
+    el.value = val;
     const sc = SC[document.getElementById('scenarioSelect').value];
-    if (sc && sc.links) updateLinkRows(parseInt(val));
-    // 觸發 meta 更新
-    if (sc && sc.meta) { currentMetaCount = 0; updateMetaRows(parseInt(val)); }
-  });
+    if (sc && sc.links) updateLinkRows(val);
+    if (sc && sc.meta) { currentMetaCount = 0; updateMetaRows(val); }
+  }
+  document.getElementById('countMinus').addEventListener('click', () => stepCount(-1));
+  document.getElementById('countPlus').addEventListener('click', () => stepCount(1));
 
   // 關鍵字輸入時自動更新篇數
   document.getElementById('f_kw').addEventListener('input', function() {
@@ -1728,7 +1725,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (parts.length > 0) {
       const countEl = document.getElementById('f_count');
       if (countEl) countEl.value = parts.length;
-      syncCountPills(parts.length);
       // 大改情境：也根據關鍵字數更新連結列數
       const sc = SC[document.getElementById('scenarioSelect').value];
       if (sc && sc.links) {
@@ -1757,7 +1753,6 @@ document.addEventListener('DOMContentLoaded', () => {
       if (el) el.value = '';
     });
     document.getElementById('f_count').value = '3';
-    syncCountPills(3);
     document.getElementById('f_ver').value = '2';
     // 清空動態連結欄位
     var linkContainer = document.getElementById('linkRows');
@@ -1863,7 +1858,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('wrap_ctField').classList.toggle('hidden', !!sc.noCnCt);
     document.getElementById('wrap_kw').classList.toggle('hidden', !!sc.noKw);
     document.getElementById('wrap_count').classList.toggle('hidden', !!sc.noCount);
-    document.getElementById('countPills').classList.toggle('hidden', !!sc.noKw);
+    document.getElementById('countStepper').classList.toggle('hidden', !!sc.noKw);
     document.getElementById('f_count_select').classList.toggle('hidden', !sc.noKw);
     if (sc.noKw) {
       document.getElementById('f_count').value = document.getElementById('f_count_select').value;
