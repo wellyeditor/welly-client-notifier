@@ -2486,19 +2486,18 @@ function autoFillFromDocName(name, linkRow) {
   cleaned = cleaned.replace(/\s*\(copy\).*$/i, '').trim();
   if (!cleaned || cleaned.length < 2) return;
 
-  // 自動勾選內容類型 checkbox
+  // 自動勾選內容類型 checkbox（靜默，不觸發 change 以免重建連結列）
   const typeId = detectContentType(suffix);
   const typeCheckboxMap = { arch: 'ct_arch', article: 'ct_article', product: 'ct_product', optimize: 'ct_optimize' };
   const cb = document.getElementById(typeCheckboxMap[typeId]);
-  if (cb && !cb.checked) {
-    cb.checked = true;
-    cb.dispatchEvent(new Event('change', { bubbles: true }));
-  }
+  if (cb && !cb.checked) cb.checked = true;
 
-  // 設定該連結列的類型下拉選單
+  // 設定該連結列的類型下拉選單（延遲設定，等連結列更新完再設）
   if (linkRow) {
-    const sel = document.getElementById('f_lt' + linkRow);
-    if (sel) sel.value = typeId;
+    setTimeout(() => {
+      const sel = document.getElementById('f_lt' + linkRow);
+      if (sel) sel.value = typeId;
+    }, 100);
   }
 
   // 追加關鍵字（不重複）
@@ -2506,8 +2505,12 @@ function autoFillFromDocName(name, linkRow) {
   const kwList = existing ? existing.split(/[、,，]+/).map(s => s.trim()) : [];
   if (kwList.includes(cleaned)) return;
 
+  // 直接更新值，不觸發 input 事件以免重建連結列導致已填內容消失
   kwEl.value = existing ? existing + '、' + cleaned : cleaned;
-  kwEl.dispatchEvent(new Event('input'));
+  // 只更新篇數顯示
+  const newCount = kwEl.value.split(/[、，,]+/).map(s => s.trim()).filter(Boolean).length;
+  const countEl = document.getElementById('f_count');
+  if (countEl && parseInt(countEl.value) < newCount) countEl.value = newCount;
   kwEl.style.borderColor = '#86efac';
   setTimeout(() => { kwEl.style.borderColor = ''; }, 2000);
 }
