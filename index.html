@@ -768,10 +768,17 @@
     </div>
 
     <!-- CRM 連結 -->
-    <div id="crmLinkRow" style="display:none;text-align:center;margin:20px 0 32px">
+    <div id="crmLinkRow" style="display:none;text-align:center;margin:20px 0 12px">
       <a id="crmLinkBtn" href="#" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:8px;font-size:15px;color:#fff;text-decoration:none;font-weight:700;padding:14px 32px;background:linear-gradient(135deg,var(--ac),var(--ac-grad));border-radius:14px;box-shadow:0 4px 14px var(--ac-shadow);transition:transform .15s,box-shadow .15s;letter-spacing:.4px" onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 6px 20px var(--ac-shadow)'" onmouseout="this.style.transform='';this.style.boxShadow='0 4px 14px var(--ac-shadow)'">
         📋 前往 CRM 更新文章狀態
       </a>
+    </div>
+
+    <!-- 一鍵重置 -->
+    <div style="text-align:center;margin:16px 0 32px">
+      <button type="button" id="resetAllBtn" style="padding:10px 28px;border:1.5px solid #e2e4ec;border-radius:10px;background:#fff;font-size:13px;font-weight:600;color:#94a3b8;cursor:pointer;transition:all .15s">
+        換下一位客戶
+      </button>
     </div>
   </div>
 
@@ -1769,6 +1776,21 @@ document.addEventListener('DOMContentLoaded', () => {
     window._selectedClientEmail = null;
     document.getElementById('outputSection').classList.add('hidden');
   }
+  // 一鍵重置按鈕
+  document.getElementById('resetAllBtn').addEventListener('click', function() {
+    document.getElementById('f_cn').value = '';
+    _prevClient = '';
+    clearClientFields();
+    // 清空 checkbox
+    ['ct_arch','ct_article','ct_product','ct_optimize','ct_firstSend','ct_firstThree','ct_noEmail','ct_textFirst','ct_pubNotes','ct_tempImg'].forEach(function(id) {
+      var el = document.getElementById(id);
+      if (el) el.checked = false;
+    });
+    // 滾回頂部
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    // 聚焦客戶名稱欄位
+    setTimeout(function() { document.getElementById('f_cn').focus(); }, 400);
+  });
   document.getElementById('f_cn').addEventListener('input', function() {
     var cur = this.value.trim();
     if (cur !== _prevClient) {
