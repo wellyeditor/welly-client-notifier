@@ -2458,10 +2458,13 @@ function autoFillFromDocName(name) {
   const kwEl = document.getElementById('f_kw');
   if (!kwEl) return;
 
-  // 去除前綴編號（1. 2. 01. 等）
-  let cleaned = name.replace(/^\d+\.\s*/, '').trim();
-  // 去除後綴類型（ - 文章 / - 架構 / - 大綱 等）
-  cleaned = cleaned.replace(/\s*[-–—]\s*(文章|架構|大綱|草稿|初稿|二稿|定稿|修改版|v\d+).*$/i, '').trim();
+  // 只處理「N.關鍵字 - 類型」格式的文檔名稱（如「1.植牙 - 文章」）
+  // 其他格式（如「06/05 OO SEO 專文優化調整」）不自動帶入
+  const docPattern = /^(\d+\.)\s*(.+?)\s*[-–—]\s*(文章|架構|大綱|草稿|初稿|二稿|定稿|修改版|v\d+)/i;
+  const match = name.match(docPattern);
+  if (!match) return;
+
+  let cleaned = match[2].trim();
   // 去除 (copy) 之類的後綴
   cleaned = cleaned.replace(/\s*\(copy\).*$/i, '').trim();
 
