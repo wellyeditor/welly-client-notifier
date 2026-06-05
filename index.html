@@ -2449,34 +2449,65 @@ async function checkLinkAccess(n) {
   const url = document.getElementById('f_l' + n).value.trim();
   const dot = document.getElementById('ls' + n);
   const docName = await checkGoogleAccess(url, dot, true);
-  if (docName) autoFillFromDocName(docName);
+  if (docName) autoFillFromDocName(docName, n);
 }
 
-// 從 Google Doc 檔名自動填入關鍵字（追加，不重複）
-// 常見格式：「1.芬蘭必買 - 文章」「2.植牙費用 - 架構」「隆鼻推薦 - 文章」
-function autoFillFromDocName(name) {
+// 從文檔名稱後綴判斷內容類型
+function detectContentType(suffix) {
+  if (!suffix) return 'article';
+  const s = suffix.trim();
+  if (/架構/.test(s)) return 'arch';
+  if (/優化.*產品|產品.*優化/.test(s)) return 'product';
+  if (/產品/.test(s)) return 'product';
+  if (/優化/.test(s)) return 'optimize';
+  return 'article';
+}
+
+// 從 Google Doc 檔名自動填入關鍵字 + 內容類型（追加，不重複）
+function autoFillFromDocName(name, linkRow) {
   const kwEl = document.getElementById('f_kw');
   if (!kwEl) return;
 
-  // 擷取關鍵字：取「N.關鍵字 - 後綴」或「N.關鍵字」中的關鍵字部分
-  // 有編號前綴（1. 2. 01.）才處理，避免把「06/05 OO SEO 專文優化調整」之類的文檔名稱誤判
+  // 有編號前綴（1. 2. 01.）才處理，避免誤判
   const numMatch = name.match(/^(\d{1,2})\.\s*(.+)/);
   if (!numMatch) return;
 
-  // 取編號後面的部分，再去掉「- xxx」後綴（不限類型）
-  let cleaned = numMatch[2].replace(/\s*[-–—].*$/, '').trim();
-  // 去除 (copy) 之類的後綴
+  const rest = numMatch[2];
+  // 拆分關鍵字和後綴
+  const dashMatch = rest.match(/^(.+?)\s*[-–—]\s*(.+)$/);
+  let cleaned, suffix;
+  if (dashMatch) {
+    cleaned = dashMatch[1].trim();
+    suffix = dashMatch[2].trim();
+  } else {
+    cleaned = rest.trim();
+    suffix = '';
+  }
   cleaned = cleaned.replace(/\s*\(copy\).*$/i, '').trim();
-
   if (!cleaned || cleaned.length < 2) return;
 
-  // 檢查是否已存在（避免重複）
+  // 自動勾選內容類型 checkbox
+  const typeId = detectContentType(suffix);
+  const typeCheckboxMap = { arch: 'ct_arch', article: 'ct_article', product: 'ct_product', optimize: 'ct_optimize' };
+  const cb = document.getElementById(typeCheckboxMap[typeId]);
+  if (cb && !cb.checked) {
+    cb.checked = true;
+    cb.dispatchEvent(new Event('change', { bubbles: true }));
+  }
+
+  // 設定該連結列的類型下拉選單
+  if (linkRow) {
+    const sel = document.getElementById('f_lt' + linkRow);
+    if (sel) sel.value = typeId;
+  }
+
+  // 追加關鍵字（不重複）
   const existing = kwEl.value.trim();
   const kwList = existing ? existing.split(/[、,，]+/).map(s => s.trim()) : [];
   if (kwList.includes(cleaned)) return;
 
-  // 追加
   kwEl.value = existing ? existing + '、' + cleaned : cleaned;
+  kwEl.dispatchEvent(new Event('input'));
   kwEl.style.borderColor = '#86efac';
   setTimeout(() => { kwEl.style.borderColor = ''; }, 2000);
 }
