@@ -496,10 +496,10 @@
     <div class="hidden" id="wrap_potOptions" style="margin-top:10px">
       <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
         <label style="font-size:13px;font-weight:600;color:#475569;white-space:nowrap">調整項目</label>
-        <span style="font-size:12px;color:#94a3b8">填了哪些欄位就自動帶入，不需手動勾選</span>
-        <input type="checkbox" id="pot_chgTitle" checked style="display:none">
-        <input type="checkbox" id="pot_chgDesc" checked style="display:none">
+        <span id="potOptionsAutoHint" style="font-size:12px;color:#94a3b8">填了哪些欄位就自動帶入，不需手動勾選</span>
         <div class="checkbox-group">
+          <label id="pot_chgTitle_label" style="display:none"><input type="checkbox" id="pot_chgTitle" checked> 標題</label>
+          <label id="pot_chgDesc_label" style="display:none"><input type="checkbox" id="pot_chgDesc" checked> 前言</label>
           <label><input type="checkbox" id="pot_updateDate" checked> 更新日期</label>
         </div>
       </div>
@@ -1191,6 +1191,25 @@ function buildMetaBlock(items, isAfter, chgTitle, chgDesc, isClient) {
   }).join('\n\n');
 }
 
+// LINE 專用 meta block（emoji 排版）
+function buildMetaBlockLine(items, chgTitle, chgDesc) {
+  return items.map(m => {
+    const parts = [];
+    parts.push(`📌 ${m.kw || '【關鍵字】'}`);
+    const hasTitle = chgTitle && (m.oTitle.trim() || m.nTitle.trim());
+    const hasDesc = chgDesc && (m.oDesc.trim() || m.nDesc.trim());
+    if (hasTitle) {
+      parts.push(`┌ 原標題：${m.oTitle || '—'}`);
+      parts.push(`└ 新標題：${m.nTitle || '—'}`);
+    }
+    if (hasDesc) {
+      parts.push(`┌ 原前言：${m.oDesc || '—'}`);
+      parts.push(`└ 新前言：${m.nDesc || '—'}`);
+    }
+    return parts.join('\n');
+  }).join('\n\n');
+}
+
 function gen(id) {
   const v = vals();
 
@@ -1471,8 +1490,9 @@ function gen(id) {
         emailBody = `${hi}\n\n文章上線至今，我們已經取得一些關鍵字曝光數據，為了幫助文章流量與排名持續成長，我們調整了${kwFmt} ${v.count} 篇 SEO 文章的${potChangeText}${dateText}。\n\n${metaBlock}\n\n以上提供給您知悉，若有任何問題，請再與我們聯繫，謝謝！\n\n${v.sg}`;
         lineBody = `文章上線至今，我們已經取得一些關鍵字曝光數據，為了幫助文章流量與排名持續成長，我們根據潛力關鍵字調整了${kwFmt} ${v.count} 篇 SEO 文章的${potChangeText}${dateText}。\n\n信件稍早已經同步寄送至您的信箱，以上，若有問題再請跟我們聯繫，謝謝！`;
       } else if (t === 'noemail_detail') {
-        // 無需寄信 — 附調整內容
-        lineBody = `文章上線至今，我們已經取得一些關鍵字曝光數據，為了幫助文章流量與排名持續成長，我們根據潛力關鍵字調整了${kwFmt} ${v.count} 篇 SEO 文章的${potChangeText}${dateText}，調整內容如下：\n\n${metaBlock}\n\n以上提供給您知悉，若有問題再請跟我們聯繫，謝謝！`;
+        // 無需寄信 — 附調整內容（LINE emoji 排版）
+        const lineMetaBlock = buildMetaBlockLine(v.metaItems, v.chgTitle, v.chgDesc);
+        lineBody = `文章上線至今，我們已經取得一些關鍵字曝光數據，為了幫助文章流量與排名持續成長，我們根據潛力關鍵字調整了${kwFmt} ${v.count} 篇 SEO 文章的${potChangeText}${dateText}，調整內容如下：\n\n${lineMetaBlock}\n\n以上提供給您知悉，若有問題再請跟我們聯繫，謝謝！`;
       } else {
         // noemail — 純通知
         lineBody = `文章上線至今，我們已經取得一些關鍵字曝光數據，為了幫助文章流量與排名持續成長，我們根據潛力關鍵字調整了${kwFmt} ${v.count} 篇 SEO 文章的${potChangeText}${dateText}。\n\n以上，若有問題再請跟我們聯繫，謝謝！`;
@@ -1884,9 +1904,14 @@ document.addEventListener('DOMContentLoaded', () => {
         const hasEmail = t !== 'noemail' && t !== 'noemail_detail';
         const hasDl = t === 'client' || t === 'before';
         const hasMeta = t !== 'noemail';
+        const isManualCheck = t === 'noemail';
         document.getElementById('wrap_dl').classList.toggle('hidden', !hasDl);
         document.getElementById('wrap_sg').classList.toggle('hidden', !hasEmail);
         document.getElementById('metaSection').classList.toggle('hidden', !hasMeta);
+        // 純通知：顯示標題/前言手動 checkbox；其他模式：隱藏（由 meta 欄位自動判斷）
+        document.getElementById('pot_chgTitle_label').style.display = isManualCheck ? '' : 'none';
+        document.getElementById('pot_chgDesc_label').style.display = isManualCheck ? '' : 'none';
+        document.getElementById('potOptionsAutoHint').style.display = isManualCheck ? 'none' : '';
         // 更新 badges
         const badges = document.getElementById('scenarioBadges');
         badges.innerHTML = '';
