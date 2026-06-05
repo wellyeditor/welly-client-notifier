@@ -1038,6 +1038,7 @@ async function fetchPageTitle(idx, url) {
 
 // checkbox 勾選變動時，刷新現有連結列的類型欄（不重建 URL 值）
 function refreshLinkTypeLabels() {
+  if (window._autoFilling) return;
   if (currentLinkCount > 0) {
     const oldCount = currentLinkCount;
     currentLinkCount = 0; // force rebuild
@@ -1721,6 +1722,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // 關鍵字輸入時自動更新篇數
   document.getElementById('f_kw').addEventListener('input', function() {
+    if (window._autoFilling) return;
     const parts = this.value.split(/[、，,]+/).map(s => s.trim()).filter(Boolean);
     if (parts.length > 0) {
       const countEl = document.getElementById('f_count');
@@ -2299,6 +2301,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // ── 篇數變更時，自動更新連結列數 & Meta 列數 ──
   document.getElementById('f_count').addEventListener('input', function() {
+    if (window._autoFilling) return;
     const sc = SC[document.getElementById('scenarioSelect').value];
     if (sc && sc.links) updateLinkRows(parseInt(this.value) || 3);
     if (sc && sc.meta) updateMetaRows(parseInt(this.value) || 1);
@@ -2312,6 +2315,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // ── 關鍵字輸入時也同步更新連結列數 ──
   document.getElementById('f_kw').addEventListener('input', function() {
+    if (window._autoFilling) return;
     const sc = SC[document.getElementById('scenarioSelect').value];
     if (sc && sc.links) {
       const count = parseInt(document.getElementById('f_count').value) || 3;
@@ -2486,31 +2490,36 @@ function autoFillFromDocName(name, linkRow) {
   cleaned = cleaned.replace(/\s*\(copy\).*$/i, '').trim();
   if (!cleaned || cleaned.length < 2) return;
 
-  // 自動勾選內容類型 checkbox（靜默，不觸發 change 以免重建連結列）
-  const typeId = detectContentType(suffix);
-  const typeCheckboxMap = { arch: 'ct_arch', article: 'ct_article', product: 'ct_product', optimize: 'ct_optimize' };
-  const cb = document.getElementById(typeCheckboxMap[typeId]);
-  if (cb && !cb.checked) cb.checked = true;
-
-  // 設定該連結列的類型下拉選單（延遲設定，等連結列更新完再設）
-  if (linkRow) {
-    setTimeout(() => {
-      const sel = document.getElementById('f_lt' + linkRow);
-      if (sel) sel.value = typeId;
-    }, 100);
-  }
-
   // 追加關鍵字（不重複）
   const existing = kwEl.value.trim();
   const kwList = existing ? existing.split(/[、,，]+/).map(s => s.trim()) : [];
   if (kwList.includes(cleaned)) return;
 
-  // 直接更新值，不觸發 input 事件以免重建連結列導致已填內容消失
+  // 設 flag 讓 input/change listener 跳過，避免重建連結列
+  window._autoFilling = true;
+
   kwEl.value = existing ? existing + '、' + cleaned : cleaned;
-  // 只更新篇數顯示
+
+  // 更新篇數（只增不減）
   const newCount = kwEl.value.split(/[、，,]+/).map(s => s.trim()).filter(Boolean).length;
   const countEl = document.getElementById('f_count');
-  if (countEl && parseInt(countEl.value) < newCount) countEl.value = newCount;
+  if (countEl && parseInt(countEl.value) < newCount) countEl.value = String(newCount);
+
+  // 自動勾選內容類型 checkbox
+  const typeId = detectContentType(suffix);
+  const typeCheckboxMap = { arch: 'ct_arch', article: 'ct_article', product: 'ct_product', optimize: 'ct_optimize' };
+  const typeCb = document.getElementById(typeCheckboxMap[typeId]);
+  if (typeCb && !typeCb.checked) typeCb.checked = true;
+
+  // 設定該連結列的類型下拉選單
+  if (linkRow) {
+    const sel = document.getElementById('f_lt' + linkRow);
+    if (sel) sel.value = typeId;
+  }
+
+  // 清除 flag
+  setTimeout(() => { window._autoFilling = false; }, 50);
+
   kwEl.style.borderColor = '#86efac';
   setTimeout(() => { kwEl.style.borderColor = ''; }, 2000);
 }
