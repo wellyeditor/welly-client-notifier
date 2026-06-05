@@ -1199,12 +1199,10 @@ function buildMetaBlockLine(items, chgTitle, chgDesc) {
     const hasTitle = chgTitle && (m.oTitle.trim() || m.nTitle.trim());
     const hasDesc = chgDesc && (m.oDesc.trim() || m.nDesc.trim());
     if (hasTitle) {
-      parts.push(`┌ 原標題：${m.oTitle || '—'}`);
-      parts.push(`└ 新標題：${m.nTitle || '—'}`);
+      parts.push(`原標題：${m.oTitle || '—'}\n新標題：${m.nTitle || '—'}`);
     }
     if (hasDesc) {
-      parts.push(`┌ 原前言：${m.oDesc || '—'}`);
-      parts.push(`└ 新前言：${m.nDesc || '—'}`);
+      parts.push(`原前言：${m.oDesc || '—'}\n新前言：${m.nDesc || '—'}`);
     }
     return parts.join('\n');
   }).join('\n\n');
