@@ -1010,35 +1010,22 @@ function updateLinkRows(n) {
   currentLinkCount = n;
 }
 
-// 嘗試抓取網頁 <title>
+// 嘗試抓取網頁 <title>（透過 GAS 後端，無 CORS 限制）
 async function fetchPageTitle(idx, url) {
   const titleEl = document.getElementById('f_lt_title' + idx);
   if (!titleEl) return;
   if (/docs\.google\.com|drive\.google\.com/.test(url)) return;
   titleEl.placeholder = '抓取標題中...';
-  const extractTitle = (html) => {
-    // 優先用 og:title，沒有再用 <title>
-    const og = html.match(/<meta[^>]*property=["']og:title["'][^>]*content=["']([^"']+)["']/i)
-              || html.match(/<meta[^>]*content=["']([^"']+)["'][^>]*property=["']og:title["']/i);
-    if (og && og[1]) return og[1].trim();
-    const t = html.match(/<title[^>]*>([^<]+)<\/title>/i);
-    if (t && t[1]) return t[1].trim().replace(/\s+/g, ' ');
-    return null;
-  };
-  // 方法 1：直接 fetch
   try {
-    const res = await fetch(url, { mode: 'cors' });
+    const gasUrl = GAS_LOGGER_URL + '?action=fetchTitle&url=' + encodeURIComponent(url);
+    const res = await fetch(gasUrl);
     if (res.ok) {
-      const title = extractTitle(await res.text());
-      if (title) { titleEl.value = title; titleEl.style.borderColor = '#86efac'; return; }
-    }
-  } catch(e) {}
-  // 方法 2：codetabs proxy
-  try {
-    const res = await fetch('https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(url));
-    if (res.ok) {
-      const title = extractTitle(await res.text());
-      if (title) { titleEl.value = title; titleEl.style.borderColor = '#86efac'; return; }
+      const data = await res.json();
+      if (data.ok && data.title) {
+        titleEl.value = data.title;
+        titleEl.style.borderColor = '#86efac';
+        return;
+      }
     }
   } catch(e) {}
   titleEl.placeholder = '無法自動抓取，請手動輸入標題';
