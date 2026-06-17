@@ -4,7 +4,23 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>客戶通知生成器 · Welly</title>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
+  /* Google 登入畫面 */
+  .login-overlay {
+    position: fixed; inset: 0; z-index: 99999;
+    background: #f0f1f6;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 20px;
+  }
+  .login-overlay.hidden { display: none; }
+  .login-card {
+    background: #fff; border-radius: 16px; padding: 40px 36px; text-align: center;
+    box-shadow: 0 2px 12px rgba(0,0,0,.08); max-width: 380px; width: 90%;
+  }
+  .login-card h2 { font-size: 20px; font-weight: 700; color: #1e1e2e; margin-bottom: 6px; }
+  .login-card p { font-size: 13px; color: #888; margin-bottom: 24px; }
+  .login-error { color: #dc2626; font-size: 13px; margin-top: 12px; display: none; }
   :root {
     --ac: #7e9ab5; --ac-dark: #5f7f9a; --ac-bg: #f0f4f7; --ac-hover: #e4ecf2;
     --ac-grad: #8b5cf6; --ac-shadow: rgba(99,102,241,.3); --ac-ring: #c7c3f9;
@@ -320,7 +336,31 @@
 </style>
 </head>
 <body>
-<div class="wrap">
+
+<!-- Google 登入畫面 -->
+<div class="login-overlay" id="loginOverlay">
+  <div class="login-card">
+    <h2>客戶通知生成器</h2>
+    <p>請使用 Welly 公司帳號登入</p>
+    <div id="g_id_onload"
+         data-client_id="695841651221-d6t4p0e9p1gcpchnnmpmtsj0vqkasgf9.apps.googleusercontent.com"
+         data-callback="handleGoogleLogin"
+         data-auto_prompt="false">
+    </div>
+    <div class="g_id_signin"
+         data-type="standard"
+         data-shape="rectangular"
+         data-theme="outline"
+         data-text="signin_with"
+         data-size="large"
+         data-logo_alignment="left"
+         data-width="280">
+    </div>
+    <div class="login-error" id="loginError"></div>
+  </div>
+</div>
+
+<div class="wrap" id="mainApp" style="display:none">
 
   <!-- 頁首 -->
   <div class="header" style="display:flex;align-items:flex-start;justify-content:space-between">
@@ -2834,6 +2874,47 @@ document.getElementById('qr_sendBtn').addEventListener('click', function() {
     this.textContent = '建立日曆提醒';
   });
 });
+
+// ─── Google 登入驗證 ────────────────────────────────────────────
+function handleGoogleLogin(response) {
+  try {
+    // 解析 JWT token（只取 payload，不做簽章驗證——域名限制已在 GCP 設定）
+    const payload = JSON.parse(atob(response.credential.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));
+    const email = (payload.email || '').toLowerCase();
+    const domain = email.split('@')[1] || '';
+
+    if (domain !== 'welly.tw') {
+      const errEl = document.getElementById('loginError');
+      errEl.textContent = '請使用 @welly.tw 公司帳號登入';
+      errEl.style.display = 'block';
+      return;
+    }
+
+    // 登入成功：記住狀態 + 顯示工具
+    sessionStorage.setItem('wellyAuth', JSON.stringify({
+      email: email,
+      name: payload.name || '',
+      exp: payload.exp
+    }));
+    document.getElementById('loginOverlay').classList.add('hidden');
+    document.getElementById('mainApp').style.display = '';
+  } catch(e) {
+    const errEl = document.getElementById('loginError');
+    errEl.textContent = '登入失敗，請重試';
+    errEl.style.display = 'block';
+  }
+}
+
+// 頁面載入時檢查是否已登入（同一分頁內不用重複登入）
+(function checkAuth() {
+  try {
+    const auth = JSON.parse(sessionStorage.getItem('wellyAuth') || '{}');
+    if (auth.email && auth.exp && (auth.exp * 1000) > Date.now()) {
+      document.getElementById('loginOverlay').classList.add('hidden');
+      document.getElementById('mainApp').style.display = '';
+    }
+  } catch(e) {}
+})();
 
 </script>
 </body>
