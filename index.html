@@ -2494,8 +2494,15 @@ function autoFillFromDocName(name, linkRow) {
     cleaned = dashMatch[1].trim();
     suffix = dashMatch[2].trim();
   } else {
-    cleaned = rest.trim();
-    suffix = '';
+    // 沒有破折號時，嘗試用已知後綴從尾端拆分（長的先匹配）
+    const suffixMatch = rest.match(/^(.+?)\s+(文章架構|優化產品頁|優化文章|產品頁|架構|文章|產品|優化)\s*$/);
+    if (suffixMatch) {
+      cleaned = suffixMatch[1].trim();
+      suffix = suffixMatch[2].trim();
+    } else {
+      cleaned = rest.trim();
+      suffix = '';
+    }
   }
   cleaned = cleaned.replace(/\s*\(copy\).*$/i, '').trim();
   if (!cleaned || cleaned.length < 2) return;
