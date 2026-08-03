@@ -696,8 +696,11 @@
       <div class="section-title">📢 內部群組訊息</div>
       <div class="grid">
         <div class="field span2">
-          <label>CRM 客戶名稱 <span style="font-weight:400;color:#94a3b8;font-size:11px">含公司全名與簡稱</span></label>
+          <label>專案名稱 <span style="font-weight:400;color:#94a3b8;font-size:11px">自動帶入；多專案時可於下方選擇</span></label>
           <input type="text" id="f_crmName" placeholder="例：優尼客室內裝修有限公司（優尼客空間設計）" />
+          <select id="f_projPick" onchange="document.getElementById('f_crmName').value=this.value;"
+            style="display:none;margin-top:6px;width:100%;padding:6px 8px;border:1px solid #e2e8f0;border-radius:6px;font-size:13px;background:#fffbeb"></select>
+          <div id="f_projHint" style="display:none;font-size:11px;color:#d97706;margin-top:4px">此客戶有多個專案，請選擇本次通知要用的專案 ⤴</div>
         </div>
         <div class="field span2">
           <label>CRM 連結 <span style="font-weight:400;color:#94a3b8;font-size:11px">選填，貼上該客戶的 CRM 頁面網址</span></label>
@@ -1789,6 +1792,9 @@ document.addEventListener('DOMContentLoaded', () => {
       var el = document.getElementById(id);
       if (el) el.value = '';
     });
+    // 收起多專案下拉
+    var _pp = document.getElementById('f_projPick'); if (_pp) { _pp.style.display = 'none'; _pp.innerHTML = ''; }
+    var _ph = document.getElementById('f_projHint'); if (_ph) _ph.style.display = 'none';
     document.getElementById('f_count').value = '3';
     document.getElementById('f_ver').value = '1';
     // 清空動態連結欄位
@@ -2680,9 +2686,23 @@ window.addEventListener('storage', (e) => {
     if (contact) {
       document.getElementById('f_ct').value = contact;
     }
-    // 自動帶入 CRM 完整名稱 + 連結
+    // 自動帶入專案名稱（多專案 → 顯示下拉讓使用者選）+ 連結
     const crmNameEl = document.getElementById('f_crmName');
-    if (crmNameEl) crmNameEl.value = fullName || name;
+    const projPick = document.getElementById('f_projPick');
+    const projHint = document.getElementById('f_projHint');
+    if (crmNameEl) {
+      const projs = (fullName || '').split(/[\r\n]+/).map(s => s.trim()).filter(Boolean);
+      if (projs.length > 1 && projPick) {
+        projPick.innerHTML = projs.map(p => `<option value="${escH(p)}">${escH(p)}</option>`).join('');
+        projPick.style.display = 'block';
+        if (projHint) projHint.style.display = 'block';
+        crmNameEl.value = projs[0];   // 預設第一個，使用者可改選
+      } else {
+        if (projPick) { projPick.style.display = 'none'; projPick.innerHTML = ''; }
+        if (projHint) projHint.style.display = 'none';
+        crmNameEl.value = fullName || name;
+      }
+    }
     if (crm) {
       const crmEl = document.getElementById('f_crmLink');
       if (crmEl) crmEl.value = crm;
