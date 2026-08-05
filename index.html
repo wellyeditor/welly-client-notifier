@@ -2606,15 +2606,27 @@ let clientListCache = [];
 // 拉單一 operator 的客戶清單，失敗自動重試一次（webapp 偶爾會慢/斷）
 async function _fetchClientList(op) {
   const url = GAS_LOGGER_URL + '?action=clients' + (op ? '&operator=' + encodeURIComponent(op) : '');
-  for (let i = 0; i < 2; i++) {
+  // 多試幾次：Apps Script webapp 冷啟動偶爾回 404，退避重試可救回
+  const backoff = [600, 1500, 3000];
+  for (let i = 0; i < backoff.length + 1; i++) {
     try {
       const res = await fetch(url, { redirect: 'follow' });
-      const data = await res.json();
-      if (data && data.ok) return data;
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.ok) return data;
+      }
     } catch (e) { /* 下一輪重試 */ }
-    if (i === 0) await new Promise(r => setTimeout(r, 500));
+    if (i < backoff.length) await new Promise(r => setTimeout(r, backoff[i]));
   }
   return null;
+}
+window.__loadingClients = false;
+async function ensureClientList() {
+  // 名單是空的才重載（自我修復：點客戶欄時呼叫）
+  if ((Array.isArray(clientListCache) ? clientListCache.length : 0) > 0) return;
+  if (window.__loadingClients) return;
+  window.__loadingClients = true;
+  try { await loadClientList(); } finally { window.__loadingClients = false; }
 }
 async function loadClientList() {
   if (!GAS_LOGGER_URL) return;
@@ -2674,7 +2686,11 @@ window.addEventListener('storage', (e) => {
     dropdown.style.display = 'block';
   }
 
-  input.addEventListener('focus', () => renderDropdown(input.value));
+  input.addEventListener('focus', async () => {
+    renderDropdown(input.value);
+    await ensureClientList();          // 名單空的話自動重載，回來再顯示
+    renderDropdown(input.value);
+  });
   input.addEventListener('input', () => renderDropdown(input.value));
 
   dropdown.addEventListener('click', function(e) {
