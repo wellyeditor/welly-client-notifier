@@ -2603,43 +2603,46 @@ function checkDocLinkAccess() {
 
 // ─── 客戶名單（從 Google Sheet 載入） ─────────────────────────────────
 let clientListCache = [];
+// 拉單一 operator 的客戶清單，失敗自動重試一次（webapp 偶爾會慢/斷）
+async function _fetchClientList(op) {
+  const url = GAS_LOGGER_URL + '?action=clients' + (op ? '&operator=' + encodeURIComponent(op) : '');
+  for (let i = 0; i < 2; i++) {
+    try {
+      const res = await fetch(url, { redirect: 'follow' });
+      const data = await res.json();
+      if (data && data.ok) return data;
+    } catch (e) { /* 下一輪重試 */ }
+    if (i === 0) await new Promise(r => setTimeout(r, 500));
+  }
+  return null;
+}
 async function loadClientList() {
   if (!GAS_LOGGER_URL) return;
-  try {
-    const operator = localStorage.getItem('wellySignoff') || '';
-    const calTarget = localStorage.getItem('wellyCalTarget') || '';
+  const operator = localStorage.getItem('wellySignoff') || '';
+  const calTarget = localStorage.getItem('wellyCalTarget') || '';
 
-    // 拉自己的客戶
-    const url = GAS_LOGGER_URL + '?action=clients' + (operator ? '&operator=' + encodeURIComponent(operator) : '');
-    const res = await fetch(url, { redirect: 'follow' });
-    const data = await res.json();
-    var myClients = [];
-    if (data.ok && data.clients) {
-      myClients = data.clients.map(c => Object.assign({}, c, { owner: '' }));
+  // 自己的客戶（獨立處理，失敗不影響職代）
+  let myClients = [];
+  const data = await _fetchClientList(operator);
+  if (data && data.clients) myClients = data.clients.map(c => Object.assign({}, c, { owner: '' }));
+
+  // 職代模式：另外拉原負責人的客戶（獨立 try，第一個失敗也照跑）
+  let deputyClients = [];
+  window._deputyEmail = '';
+  if (calTarget && calTarget !== operator) {
+    const data2 = await _fetchClientList(calTarget);
+    if (data2 && data2.clients) {
+      const myNames = new Set(myClients.map(c => c.name));
+      deputyClients = data2.clients
+        .filter(c => !myNames.has(c.name))
+        .map(c => Object.assign({}, c, { owner: calTarget }));
+      if (data2.operatorEmail) window._deputyEmail = data2.operatorEmail;
     }
+  }
 
-    // 職代模式：同時拉原負責人的客戶
-    var deputyClients = [];
-    window._deputyEmail = '';
-    if (calTarget && calTarget !== operator) {
-      try {
-        const url2 = GAS_LOGGER_URL + '?action=clients&operator=' + encodeURIComponent(calTarget);
-        const res2 = await fetch(url2, { redirect: 'follow' });
-        const data2 = await res2.json();
-        if (data2.ok && data2.clients) {
-          // 用 name 去重（避免跟自己的重複）
-          const myNames = new Set(myClients.map(c => c.name));
-          deputyClients = data2.clients
-            .filter(c => !myNames.has(c.name))
-            .map(c => Object.assign({}, c, { owner: calTarget }));
-        }
-        // 儲存職代本人的信箱（GAS 回傳）
-        if (data2.operatorEmail) window._deputyEmail = data2.operatorEmail;
-      } catch(e2) { /* 職代名單載入失敗，不影響主流程 */ }
-    }
-
-    clientListCache = myClients.concat(deputyClients);
-  } catch(e) { /* 靜默失敗，手動輸入仍可用 */ }
+  // 只有成功拿到資料才覆蓋，避免暫時性失敗把整份名單清空
+  const merged = myClients.concat(deputyClients);
+  if (merged.length) clientListCache = merged;
 }
 // 頁面載入時拉取
 loadClientList();
@@ -2655,9 +2658,10 @@ window.addEventListener('storage', (e) => {
 
   function renderDropdown(filter) {
     const q = (filter || '').trim().toLowerCase();
+    const list = (Array.isArray(clientListCache) ? clientListCache : []).filter(Boolean);
     const matches = q
-      ? clientListCache.filter(c => c.name.toLowerCase().includes(q) || (c.fullName && c.fullName.toLowerCase().includes(q)))
-      : clientListCache;
+      ? list.filter(c => String(c.name || '').toLowerCase().includes(q) || String(c.fullName || '').toLowerCase().includes(q))
+      : list;
     if (!matches.length) { dropdown.style.display = 'none'; return; }
     dropdown.innerHTML = matches.slice(0, 30).map(c =>
       `<div class="cn-option" data-name="${escH(c.name)}" data-fullname="${escH(c.fullName || '')}" data-contact="${escH(c.contact)}" data-crm="${escH(c.crm)}" data-main-email="${escH(c.mainEmail || '')}" data-cc-email="${escH(c.ccEmail || '')}" data-pm-email="${escH(c.pmEmail || '')}"
