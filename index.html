@@ -421,6 +421,10 @@
         <a href="https://docs.google.com/spreadsheets/d/1EaDpjRZthfHeDLGfocKDTL52ze7rNRmIBcB8cwjBazg/edit" target="_blank" rel="noopener" class="feedback-btn">
           📋 編輯我的客戶名單
         </a>
+        <button type="button" id="btnRefreshClients" onclick="refreshMyClients()" class="feedback-btn" style="width:100%;margin-top:8px;cursor:pointer;border:1px solid #c7d2fe;background:#eef2ff;color:#4338ca">
+          🔄 立即更新名單
+        </button>
+        <div style="font-size:11px;color:#94a3b8;margin-top:6px;line-height:1.5">在 CRM 把自己加進客戶的「編輯」欄後，點此即可把新客戶抓進名單（約 15～60 秒），不用等每天自動同步。</div>
       </div>
 
       <div class="settings-section" style="margin-bottom:0">
@@ -568,7 +572,7 @@
 
     <div class="grid" id="basicFields">
       <div class="field" id="wrap_cnField" style="position:relative">
-        <label>客戶名稱 <button type="button" id="btnRefreshClients" onclick="refreshMyClients()" title="在 CRM 加好編輯後，點此立即把你的新客戶抓進名單" style="float:right;font-size:11px;font-weight:400;color:#4338ca;background:#eef2ff;border:1px solid #c7d2fe;border-radius:5px;padding:2px 8px;cursor:pointer">🔄 立即更新名單</button></label>
+        <label>客戶名稱</label>
         <input type="text" id="f_cn" placeholder="輸入搜尋或手動填寫" autocomplete="off" />
         <div id="cnDropdown" style="display:none;position:absolute;top:100%;left:0;right:0;z-index:50;background:#fff;border:1px solid #e2e4ec;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,.1);max-height:200px;overflow-y:auto;margin-top:2px"></div>
       </div>
