@@ -568,7 +568,7 @@
 
     <div class="grid" id="basicFields">
       <div class="field" id="wrap_cnField" style="position:relative">
-        <label>客戶名稱</label>
+        <label>客戶名稱 <button type="button" id="btnRefreshClients" onclick="refreshMyClients()" title="在 CRM 加好編輯後，點此立即把你的新客戶抓進名單" style="float:right;font-size:11px;font-weight:400;color:#4338ca;background:#eef2ff;border:1px solid #c7d2fe;border-radius:5px;padding:2px 8px;cursor:pointer">🔄 立即更新名單</button></label>
         <input type="text" id="f_cn" placeholder="輸入搜尋或手動填寫" autocomplete="off" />
         <div id="cnDropdown" style="display:none;position:absolute;top:100%;left:0;right:0;z-index:50;background:#fff;border:1px solid #e2e4ec;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,.1);max-height:200px;overflow-y:auto;margin-top:2px"></div>
       </div>
@@ -842,6 +842,28 @@ const GAS_PERMISSION_URL = 'https://script.google.com/macros/s/AKfycby3bmEYUsboT
 // ─── GAS 截止日紀錄 + Slack 提醒 API ─────────────────────────────────
 // 部署 GAS 後，將 Web App URL 貼到這裡（見 gas-deadline-logger.js）
 const GAS_LOGGER_URL = 'https://script.google.com/macros/s/AKfycbxKpE9Et3SWe_yRCboLGTwPurZn34LYrr0-LbeztwdZaTyNmlIqu0GGd0noWWC81Af4DA/exec';
+
+// ─── CRM 即時同步 webapp（「立即更新名單」按鈕用）────────────────────
+const SYNC_WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbyt0iX6goufFC1lr2m91XMEMQIzEwZPr-n2gQPGDYq1jlf8E0-fn4X9VQRmsUT6tNYl/exec';
+async function refreshMyClients() {
+  const btn = document.getElementById('btnRefreshClients');
+  const op = localStorage.getItem('wellySignoff') || '';
+  if (!op) { alert('請先在右上「設定」填寫你的署名'); return; }
+  const orig = btn ? btn.textContent : '';
+  if (btn) { btn.disabled = true; btn.style.opacity = '.7'; btn.textContent = '⏳ 更新中…約 1 分鐘'; }
+  let msg = '已更新';
+  try {
+    const r = await fetch(SYNC_WEBAPP_URL + '?action=syncOne&operator=' + encodeURIComponent(op), { redirect: 'follow' });
+    try { const j = await r.json(); if (j && j.ok) msg = '完成，' + (j.result || '已更新'); else if (j && j.error) msg = '失敗：' + j.error; } catch (e) {}
+    await loadClientList();                    // 重新載入名單，讓新客戶出現
+    const inp = document.getElementById('f_cn');
+    if (inp === document.activeElement) inp.dispatchEvent(new Event('focus'));
+    if (btn) btn.textContent = '✓ ' + msg;
+  } catch (e) {
+    if (btn) btn.textContent = '✗ 更新失敗，請重試';
+  }
+  setTimeout(() => { if (btn) { btn.textContent = orig; btn.disabled = false; btn.style.opacity = ''; } }, 5000);
+}
 
 // ─── 情境設定 ───────────────────────────────────────────────────────
 const SC = {
