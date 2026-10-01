@@ -425,6 +425,10 @@
           🔄 立即更新名單
         </button>
         <div style="font-size:11px;color:#94a3b8;margin-top:6px;line-height:1.5">在 CRM 把自己加進客戶的「編輯」欄後，點此即可把新客戶抓進名單（約 15～60 秒），不用等每天自動同步。</div>
+        <label style="display:flex;align-items:flex-start;gap:8px;margin-top:12px;padding:8px;border:1px solid #e2e4ec;border-radius:6px;cursor:pointer;font-size:13px">
+          <input type="checkbox" id="allClientsMode" style="margin-top:2px" />
+          <span>全部客戶模式<span style="font-size:11px;color:#94a3b8;display:block;font-weight:400;margin-top:2px">開啟後讀「所有人」的客戶（免署名），給代寄全公司的人用。關閉則依署名顯示自己的客戶。</span></span>
+        </label>
       </div>
 
       <div class="settings-section" style="margin-bottom:0">
@@ -1882,6 +1886,17 @@ document.addEventListener('DOMContentLoaded', () => {
     signoffTimer = setTimeout(() => loadClientList(), 600);
   });
 
+  // 全部客戶模式開關（讀所有人的客戶，免署名）
+  var allModeInput = document.getElementById('allClientsMode');
+  if (allModeInput) {
+    allModeInput.checked = localStorage.getItem('wellyAllMode') === '1';
+    allModeInput.addEventListener('change', () => {
+      localStorage.setItem('wellyAllMode', allModeInput.checked ? '1' : '');
+      clientListCache = [];           // 清快取，強制重載
+      loadClientList();
+    });
+  }
+
   // 職務代理設定
   const calTargetInput = document.getElementById('calendarTarget');
   const leaveFromInput = document.getElementById('leaveFrom');
@@ -2646,6 +2661,20 @@ async function _fetchClientList(op) {
   }
   return null;
 }
+// 全部客戶模式：從同步 webapp 讀所有人的客戶（退避重試）
+async function _fetchAllClients() {
+  if (typeof SYNC_WEBAPP_URL === 'undefined' || !SYNC_WEBAPP_URL) return null;
+  const url = SYNC_WEBAPP_URL + '?action=allClients';
+  const backoff = [600, 1500, 3000];
+  for (let i = 0; i < backoff.length + 1; i++) {
+    try {
+      const res = await fetch(url, { redirect: 'follow' });
+      if (res.ok) { const data = await res.json(); if (data && data.ok) return data; }
+    } catch (e) {}
+    if (i < backoff.length) await new Promise(r => setTimeout(r, backoff[i]));
+  }
+  return null;
+}
 window.__loadingClients = false;
 async function ensureClientList() {
   // 名單是空的才重載（自我修復：點客戶欄時呼叫）
@@ -2656,6 +2685,15 @@ async function ensureClientList() {
 }
 async function loadClientList() {
   if (!GAS_LOGGER_URL) return;
+
+  // 全部客戶模式：讀所有人的客戶（免署名）
+  if (localStorage.getItem('wellyAllMode') === '1') {
+    window._deputyEmail = '';
+    const all = await _fetchAllClients();
+    if (all && all.clients && all.clients.length) clientListCache = all.clients.map(c => Object.assign({}, c));
+    return;
+  }
+
   const operator = localStorage.getItem('wellySignoff') || '';
   const calTarget = localStorage.getItem('wellyCalTarget') || '';
 
