@@ -1822,7 +1822,8 @@ document.addEventListener('DOMContentLoaded', () => {
       var el = document.getElementById(id);
       if (el) el.value = '';
     });
-    // 收起多專案下拉
+    // 清掉記住的負責編輯 + 收起多專案下拉
+    window._selectedClientOwner = '';
     var _pp = document.getElementById('f_projPick'); if (_pp) { _pp.style.display = 'none'; _pp.innerHTML = ''; }
     var _ph = document.getElementById('f_projHint'); if (_ph) _ph.style.display = 'none';
     document.getElementById('f_count').value = '3';
@@ -2191,10 +2192,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const scenarioLabel = scenarioEl.options[scenarioEl.selectedIndex].text;
     const operator = localStorage.getItem('wellySignoff') || '';
     const calTarget = localStorage.getItem('wellyCalTarget') || '';
+    // 全部客戶模式：日曆提醒建到該客戶「負責編輯」的日曆；否則依署名/職代
+    const allMode = localStorage.getItem('wellyAllMode') === '1';
+    let ownerForCal = window._selectedClientOwner || '';
+    if (allMode && !ownerForCal) {
+      const hit = (Array.isArray(clientListCache) ? clientListCache : []).find(c => String(c.name || '') === clientName);
+      if (hit && hit.owner) ownerForCal = hit.owner;
+    }
+    const calendarTarget = (allMode && ownerForCal) ? ownerForCal : (calTarget || operator);
 
     const payload = {
       operator: operator,
-      calendarTarget: calTarget || operator,
+      calendarTarget: calendarTarget,
       scenario: scenarioId,
       scenarioLabel: scenarioLabel,
       clientName: clientName,
@@ -2740,7 +2749,7 @@ window.addEventListener('storage', (e) => {
       : list;
     if (!matches.length) { dropdown.style.display = 'none'; return; }
     dropdown.innerHTML = matches.slice(0, 30).map(c =>
-      `<div class="cn-option" data-name="${escH(c.name)}" data-fullname="${escH(c.fullName || '')}" data-contact="${escH(c.contact)}" data-crm="${escH(c.crm)}" data-main-email="${escH(c.mainEmail || '')}" data-cc-email="${escH(c.ccEmail || '')}" data-pm-email="${escH(c.pmEmail || '')}"
+      `<div class="cn-option" data-name="${escH(c.name)}" data-fullname="${escH(c.fullName || '')}" data-contact="${escH(c.contact)}" data-crm="${escH(c.crm)}" data-main-email="${escH(c.mainEmail || '')}" data-cc-email="${escH(c.ccEmail || '')}" data-pm-email="${escH(c.pmEmail || '')}" data-owner="${escH(c.owner || '')}"
         style="padding:8px 12px;cursor:pointer;font-size:13px;border-bottom:1px solid #f1f1f1;transition:background .1s">
         <div style="font-weight:600">${escH(c.name)}${c.owner ? ' <span style="font-size:10px;font-weight:400;background:#e0e7ff;color:#4338ca;padding:1px 6px;border-radius:4px;margin-left:6px">' + escH(c.owner) + '</span>' : ''}</div>
         ${c.fullName ? `<div style="font-size:11px;color:#64748b">${escH(c.fullName)}</div>` : ''}
@@ -2797,6 +2806,8 @@ window.addEventListener('storage', (e) => {
       ccEmail: opt.dataset.ccEmail || '',
       pmEmail: opt.dataset.pmEmail || ''
     };
+    // 記住此客戶的負責編輯（全部客戶模式下，日曆提醒建到他的日曆）
+    window._selectedClientOwner = opt.dataset.owner || '';
     // 觸發後續連動（文檔名稱等）
     input.dispatchEvent(new Event('input'));
   });
@@ -2941,10 +2952,18 @@ document.getElementById('qr_sendBtn').addEventListener('click', function() {
 
   const operator = localStorage.getItem('wellySignoff') || '';
   const calTarget = localStorage.getItem('wellyCalTarget') || '';
+  // 全部客戶模式：用客戶名去名單找負責編輯，提醒建到他的日曆
+  const allMode = localStorage.getItem('wellyAllMode') === '1';
+  let ownerForCal = '';
+  if (allMode) {
+    const hit = (Array.isArray(clientListCache) ? clientListCache : []).find(c => String(c.name || '') === cn || String(c.fullName || '') === cn);
+    if (hit && hit.owner) ownerForCal = hit.owner;
+  }
+  const calendarTarget = ownerForCal || calTarget || operator;
 
   const payload = {
     operator: operator,
-    calendarTarget: calTarget || operator,
+    calendarTarget: calendarTarget,
     scenario: 'quick_reminder',
     scenarioLabel: document.getElementById('qr_note').value.trim() || '快速提醒',
     clientName: cn,
