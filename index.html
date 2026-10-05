@@ -501,6 +501,7 @@
       <optgroup label="🖼️ 圖片類">
         <option value="img_review">圖片審核</option>
         <option value="img_during_review">審核時圖片剛好做好</option>
+        <option value="ask_img">客戶詢問圖片進度</option>
       </optgroup>
       <optgroup label="🚀 上架類">
         <option value="client_pub">客戶自行上架</option>
@@ -549,6 +550,16 @@
       </div>
       <div style="margin-top:8px" id="wrap_remindClientDo">
         <label style="font-size:13px;cursor:pointer"><input type="checkbox" id="ct_remindClientDo"> 客戶自行上架</label>
+      </div>
+    </div>
+    <div class="hidden" id="wrap_askImgType" style="margin-bottom:14px">
+      <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+        <label style="font-size:13px;font-weight:600;color:#475569;white-space:nowrap">狀況</label>
+        <div class="radio-pills">
+          <label><input type="radio" name="askImgType" value="hasDate" checked>已有確切日期</label>
+          <label><input type="radio" name="askImgType" value="noDate">尚未有確切日期</label>
+          <label><input type="radio" name="askImgType" value="notReviewed">尚未完成審核先問</label>
+        </div>
       </div>
     </div>
     <div class="hidden" id="wrap_potLgType" style="margin-bottom:14px">
@@ -891,6 +902,7 @@ const SC = {
   client_remind:       { email:false, line:true,  links:false, ver:false, meta:false, doc:false, noDl:true,  noCount:false, replyDl:true, contentType:true,  ctAvail:[1,1,1,1], ctDefaults:[0,1,0,0], remindType:true, firstThree:true, noCnCt:true },
   img_review:          { email:true,  line:true,  links:true,  ver:true,  meta:false, doc:false, noDl:false, noCount:false },
   img_during_review:   { email:false, line:true,  links:false, ver:false, meta:false, doc:false, noDl:true,  noCount:false },
+  ask_img:             { email:false, line:true,  links:false, ver:false, meta:false, doc:false, noDl:true,  noCount:false, askImgType:true, noCnCt:true },
   client_pub:          { email:true,  line:true,  links:true,  ver:false, meta:false, doc:false, noDl:false, noCount:true,  contentType:true,  ctAvail:[0,1,1,1], ctDefaults:[0,1,0,0], imgFolder:true },
   rev_pub:             { email:true,  line:true,  links:true,  ver:true,  meta:false, doc:false, noDl:false, noCount:false, contentType:true,  ctAvail:[0,1,1,1], ctDefaults:[0,1,0,0], pubOptions:true },
   pub_links:           { email:true,  line:true,  links:true,  ver:false, meta:false, doc:false, noDl:true,  noCount:false, contentType:true,  ctAvail:[0,1,1,1], ctDefaults:[0,1,0,0], linkTitle:true, groupMsg:true, tempImg:true },
@@ -1186,6 +1198,7 @@ function vals() {
     potSmType: (document.querySelector('input[name="potSmType"]:checked') || {}).value || 'client',
     potLgType: (document.querySelector('input[name="potLgType"]:checked') || {}).value || 'after',
     remindType: (document.querySelector('input[name="remindType"]:checked') || {}).value || 'review',
+    askImgType: (document.querySelector('input[name="askImgType"]:checked') || {}).value || 'hasDate',
     remindClientDo: document.getElementById('ct_remindClientDo').checked,
     docName: document.getElementById('f_docName').value.trim() || '【文檔名稱】',
     docLink: document.getElementById('f_docLink').value.trim(),
@@ -1500,6 +1513,17 @@ function gen(id) {
       email: null,
       line: `${kwFmt} ${v.count} 篇文章 SEO 圖片已完成、置入文檔中，再麻煩客戶審核文字時一併進行確認，感謝您！`,
     };
+    case 'ask_img': {
+      let line;
+      if (v.askImgType === 'hasDate') {
+        line = `有關${kwFmt} ${v.count} 篇文章配圖目前已安排製作，預計最晚 ${v.dl} 前會完成並提供給您進行審核，非常感謝您等候，若有問題都可以再跟我們說！`;
+      } else if (v.askImgType === 'noDate') {
+        line = `目前${kwFmt} ${v.count} 篇文章配圖進度內部已在安排中，預計兩週內會完成並提供給您進行審核，非常感謝您的等候，若有問題都可以再跟我們說！`;
+      } else {
+        line = `因應 Google 需要時間爬取文章內容與建立索引，索引建立後也才會進到排名階段，☑️因此流程上都會優先確認文字內容，並待文字初稿審核完成後先協助上架，以協助整體進程推進！\n\n另有關您詢問的「文章配圖」則會於文章初稿確認後，再依照審核完成後的內容安排製作、圖片完成後亦會再提供給您審核；也因為待 Google 爬取這段時間沒有搜尋量，民眾搜尋點擊進來的機率較低，圖片後補對 SEO 影響不大～這部分可以不用擔心唷！`;
+      }
+      return { email: null, line: line };
+    }
     case 'client_pub': {
       const pubLinks = [lb, imgFolderLine].filter(Boolean).join('\n');
       return {
@@ -2127,6 +2151,19 @@ document.addEventListener('DOMContentLoaded', () => {
       };
       document.querySelectorAll('input[name="remindType"]').forEach(r => { r.onchange = applyRemindType; });
       applyRemindType();
+    }
+
+    // 客戶詢問圖片 狀況 radio
+    document.getElementById('wrap_askImgType').classList.toggle('hidden', !sc.askImgType);
+    if (sc.askImgType) {
+      document.querySelector('input[name="askImgType"][value="hasDate"]').checked = true;
+      const applyAskImg = () => {
+        const at = (document.querySelector('input[name="askImgType"]:checked') || {}).value || 'hasDate';
+        // 只有「已有確切日期」需要填預計完成日期
+        document.getElementById('wrap_dl').classList.toggle('hidden', at !== 'hasDate');
+      };
+      document.querySelectorAll('input[name="askImgType"]').forEach(r => { r.onchange = applyAskImg; });
+      applyAskImg();
     }
 
     // 潛力關鍵字選項 checkbox（標題/前言/更新日期）
