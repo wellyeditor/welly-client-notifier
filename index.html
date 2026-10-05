@@ -1893,8 +1893,8 @@ document.addEventListener('DOMContentLoaded', () => {
     allModeInput.checked = localStorage.getItem('wellyAllMode') === '1';
     allModeInput.addEventListener('change', () => {
       localStorage.setItem('wellyAllMode', allModeInput.checked ? '1' : '');
-      clientListCache = [];           // 清快取，強制重載
-      loadClientList();
+      if (!_loadClientsCacheFromStorage()) clientListCache = [];   // 先用該模式的快取立即顯示
+      loadClientList();                                            // 背景更新
     });
   }
 
@@ -2692,6 +2692,22 @@ async function ensureClientList() {
   window.__loadingClients = true;
   try { await loadClientList(); } finally { window.__loadingClients = false; }
 }
+// 名單快取（localStorage）：下次打開立即可用，不用等 webapp 冷啟動
+function _clientsCacheKey() {
+  if (localStorage.getItem('wellyAllMode') === '1') return 'wellyClients__ALL';
+  return 'wellyClients__' + (localStorage.getItem('wellySignoff') || '') + '__' + (localStorage.getItem('wellyCalTarget') || '');
+}
+function _saveClientsCache() {
+  try { localStorage.setItem(_clientsCacheKey(), JSON.stringify(clientListCache || [])); } catch (e) {}
+}
+function _loadClientsCacheFromStorage() {
+  try {
+    const s = localStorage.getItem(_clientsCacheKey());
+    if (s) { const arr = JSON.parse(s); if (Array.isArray(arr) && arr.length) { clientListCache = arr; return true; } }
+  } catch (e) {}
+  return false;
+}
+
 async function loadClientList() {
   if (!GAS_LOGGER_URL) return;
 
@@ -2699,7 +2715,7 @@ async function loadClientList() {
   if (localStorage.getItem('wellyAllMode') === '1') {
     window._deputyEmail = '';
     const all = await _fetchAllClients();
-    if (all && all.clients && all.clients.length) clientListCache = all.clients.map(c => Object.assign({}, c));
+    if (all && all.clients && all.clients.length) { clientListCache = all.clients.map(c => Object.assign({}, c)); _saveClientsCache(); }
     return;
   }
 
@@ -2727,9 +2743,10 @@ async function loadClientList() {
 
   // 只有成功拿到資料才覆蓋，避免暫時性失敗把整份名單清空
   const merged = myClients.concat(deputyClients);
-  if (merged.length) clientListCache = merged;
+  if (merged.length) { clientListCache = merged; _saveClientsCache(); }
 }
-// 頁面載入時拉取
+// 啟動：先用上次快取立即可用，再背景更新
+_loadClientsCacheFromStorage();
 loadClientList();
 // 署名或職代變更時重新拉取
 window.addEventListener('storage', (e) => {
@@ -2764,7 +2781,13 @@ window.addEventListener('storage', (e) => {
     await ensureClientList();          // 名單空的話自動重載，回來再顯示
     renderDropdown(input.value);
   });
-  input.addEventListener('input', () => renderDropdown(input.value));
+  input.addEventListener('input', () => {
+    renderDropdown(input.value);
+    // 名單是空的（還沒載好）→ 自動重載，回來再顯示
+    if (!(Array.isArray(clientListCache) && clientListCache.length)) {
+      ensureClientList().then(() => renderDropdown(input.value));
+    }
+  });
 
   dropdown.addEventListener('click', function(e) {
     const opt = e.target.closest('.cn-option');
