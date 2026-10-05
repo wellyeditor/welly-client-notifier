@@ -804,10 +804,19 @@
     <!-- LINE -->
     <div class="card hidden" id="lineCard" style="margin-top:0">
       <div class="out-header">
-        <span class="out-title">💬 LINE 訊息</span>
+        <span class="out-title" id="lineTitle">💬 LINE 訊息</span>
         <button class="copy-btn line" id="copyLineBtn">複製</button>
       </div>
       <pre class="body-pre line" id="outLine"></pre>
+    </div>
+
+    <!-- LINE 第 2 則（首次審稿步驟等情境才顯示） -->
+    <div class="card hidden" id="lineCard2" style="margin-top:0">
+      <div class="out-header">
+        <span class="out-title">💬 LINE 訊息（第 2 則）</span>
+        <button class="copy-btn line" id="copyLineBtn2">複製</button>
+      </div>
+      <pre class="body-pre line" id="outLine2"></pre>
     </div>
 
     <!-- 內部群組 -->
@@ -1389,16 +1398,31 @@ function gen(id) {
       // 有勾架構 → 架構模板語氣；沒勾 → 文章模板語氣
       const archEmail = `${dearHi}${selfIntro}我們內部團隊已根據使用者的搜尋意圖分析，以及核心與長尾關鍵字的搜尋量、競爭度、搜尋趨勢等調查，依照 Google SEO 規範安排好${kwFmt} ${v.count} 篇${cd}。\n\n架構階段的內容不是完整最終文字，我們在每份文件中皆有詳細的【架構審稿提醒】，請您於閱讀後再進行審稿，此階段的審稿主要需請您協助的會是：\n\n1. 內文段落撰寫方向是否 ok\n2. 補充相關專業資訊或案例給我們\n3. 提供您專業領域必須留意的撰寫注意事項\n\n文件請參考以下連結：\n${lb}${productNote}${imgLaterNote}\n\n希望能於 ${v.dl} 前收到您的回覆，感謝！\n\n${v.sg}`;
       const articleEmail = `${dearHi}${selfIntro}${kwFmt} ${v.count} 篇 SEO ${cd}已完成，再麻煩您抽空進行確認，關於審稿的方式與注意事項請幫我們參考下列提供的文件檔案最上方，有詳細的【文章審稿說明】。${productNote}\n\n${lb}\n\n也須請留意，由於編撰文章花費時間長，我們僅提供 1~2 次的文章修改額度，再請盡量幫我們做好文章內容的修正建議唷！感謝！\n\n審核完畢後煩請詳讀各文件檔最下方的提醒文字，完成狀態勾選後通知我們，以方便我們開始著手為貴公司調整或上架。${imgLaterNote}\n\n希望您能協助於 ${v.dl} 前完成審稿回覆，感謝！\n\n${v.sg}`;
-      // LINE 首次寄送 → 有架構用架構詳細版；純文章/產品頁用文章首次版
-      const firstArchLine = `我們內部團隊已根據使用者的搜尋意圖分析，以及核心與長尾關鍵字的搜尋量、競爭度、搜尋趨勢等調查，依照 Google SEO 規範安排好${kwFmt} ${v.count} 篇${cd}。\n\n信件與檔案中皆有詳細的審稿提醒說明，要麻煩您於閱讀後再進行審稿，此階段的審稿主要需請您協助的會是：\n\n1. 內文段落撰寫方向是否 ok\n2. 補充相關專業資訊或案例給我們\n3. 提供您專業領域必須留意的撰寫注意事項\n\n詳細的說明文件檢附於信件中，希望能於 ${v.dl} 前收到您的回覆，謝謝！`;
-      const firstArticleLine = `剛才有寄送${kwFmt} ${v.count} 篇 SEO ${cd}到信箱，關於審稿的方式與注意事項請幫我們參考信件中提供的文件檔案，裡面有詳細的審稿說明。\n\n完整內容與附件請參考信件，希望能在 ${v.dl} 前收到您的回覆，感謝！`;
+      // 短版（非首次、且非「架構＋產品頁」時用）
       const shortArchLine = `剛才有寄送${kwFmt} ${v.count} 篇 SEO ${cd}到信箱，需麻煩您確認、補充撰寫上的偏好、專業資訊和注意事項。\n\n完整內容與附件請參考信件，希望能在 ${v.dl} 前收到回覆，以便我們開始著手為貴公司撰寫，感謝！`;
       const shortArticleLine = `剛才有寄送${kwFmt} ${v.count} 篇 SEO ${cd}到信箱，完整內容與附件請參考信件，希望能在 ${v.dl} 前收到您的回覆，感謝！`;
-      const linePick = v.isFirstSend ? (v.hasArch ? firstArchLine : firstArticleLine) : (v.hasArch ? shortArchLine : shortArticleLine);
+
+      // 兩則優化版：第 1 則簡短通知、第 2 則簡要審稿步驟
+      const docWord = v.hasProduct ? '文章架構／產品頁檔案' : '文章架構檔案';
+      const archMsg1 = `我們已完成並寄送${kwFmt} ${v.count} 篇文章架構（即文章大綱）${v.hasProduct ? '、產品頁' : ''}至您的信箱，文章架構檔案及詳細【${v.hasProduct ? '審稿提醒' : '架構審稿提醒'}】皆已檢附於 email 中，請於閱讀後再進行審稿，希望能於 ${v.dl} 前收到您的回覆，謝謝！`;
+      const archMsg2 = `以下也同步提供此階段「簡要審稿步驟」給您參考：\n\n1️⃣ 目前需請您協助審核的會是：\n\n1. 內文段落撰寫方向是否 ok\n2. 補充相關專業資訊或案例給我們\n3. 提供您專業領域必須留意的撰寫注意事項\n\n2️⃣ 審稿方式：直接於${docWord}以「新增註解 or 建議編輯」方式進行審核，並請留意：\n\n1. 儘量不要改動內容架構，以內容除錯為主\n2. 儘量不要調整段落先後順序\n3. 保留文檔中藍底及灰底重點關鍵字\n\n3️⃣ 最終審稿確認事項：\n\n1. 審核完成後請於文檔最底部橘色框${v.hasProduct ? '【架構／審稿確認】勾選「調整 or 直接撰寫內文／上架內文」' : '【架構審核確認】勾選「調整 or 直接撰寫內文」'}\n2. 請務必確認${docWord}中的「註解」，若有需請您回覆或確認內容請直接回覆該註解`;
+      const artMsg1 = `剛才有寄送${kwFmt} ${v.count} 篇 SEO 文章初稿（即完整文章內容）至您的信箱，完整內容與附件請參考 email，希望能在 ${v.dl} 前收到您的回覆，感謝！`;
+      const artMsg2 = `以下提供您此階段「簡要審稿步驟」參考：\n\n1️⃣ 審核方式：直接於文章初稿檔案以「新增註解 or 建議編輯」方式審核，並請留意：\n\n1. 儘量不要改動內容架構，以內容除錯為主\n2. 儘量不要調整段落先後順序\n3. 保留文檔中藍底及灰底重點關鍵字\n\n2️⃣ 最終審稿確認事項：\n\n1. 審核完成後請於文檔最底部橘色框【審稿確認】勾選「調整 or 上架內文」\n2. 請務必確認文章初稿檔案中的「註解」，若有需請您回覆或確認內容請直接回覆該註解`;
+
+      // 用新版（兩則）的條件：首次寄送，或「架構＋產品頁」（避免客戶對產品頁審稿搞混）
+      const useFull = v.isFirstSend || (v.hasArch && v.hasProduct);
+      let linePick, line2 = null;
+      if (useFull) {
+        if (v.hasArch) { linePick = archMsg1; line2 = archMsg2; }
+        else { linePick = artMsg1; line2 = artMsg2; }
+      } else {
+        linePick = v.hasArch ? shortArchLine : shortArticleLine;
+      }
       return {
         subject: `【${v.cn}】SEO ${cd}第 1 版確認 - Welly`,
         email: v.hasArch ? archEmail : articleEmail,
         line: linePick,
+        line2: line2,
       };
     }
     case 'combo_rev': {
@@ -1459,7 +1483,7 @@ function gen(id) {
         remindLine = `想跟您確認${kwFmt} ${v.count} 篇文章的上架進度都還好嗎？\n\n上架完成後再麻煩提供文章上架連結，以利我們進行後續的數據追蹤，希望可以在${v.replyDl}收到您的回覆，感謝！`;
       } else if (rt === 'textFirst') {
         if (v.isFirstThree) {
-          remindLine = `若是${kwFmt} ${v.count} 篇文章確認完畢後，我們會建議文字可以先上架，因為 Google 需要時間爬取內容與建立索引，索引建立後才會進到排名階段，這段時間因為沒有搜尋量，民眾搜尋點擊進來的機率較低，圖片後補對 SEO 影響也不大，那麼我們內部是否可以先安排文字部分的上架呢？\n\n這裡也會同步先放上相關合法示意圖作為暫時首圖，待後續配圖製作好會再通知您進行審核唷！`;
+          remindLine = `若${kwFmt} ${v.count} 篇文章已確認完畢，因應 Google 需要時間爬取文章內容與建立索引，☑️我們會優先將已確認之文字內容上架，以協助整體進程推進！\n\n也因為待 Google 爬取這段時間沒有搜尋量，民眾搜尋點擊進來的機率較低，圖片後補對 SEO 影響不大～\n\n此外，☑️我們也會同步先放上相關合法示意圖作為暫時首圖，待後續配圖製作好會再通知您進行審核唷（預計兩週內提供）！若有問題都可以再跟我們說`;
         } else {
           remindLine = `好的，${kwFmt} ${v.count} 篇文章內容已確認沒問題！我們這邊會先安排文字部分上架唷，後續圖片製作好也會再寄送給您審核，感謝！`;
         }
@@ -2232,6 +2256,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     emailCard.classList.toggle('hidden', !result.email);
     lineCard.classList.toggle('hidden',  !result.line);
+    document.getElementById('lineCard2').classList.toggle('hidden', !result.line2);
+    document.getElementById('lineTitle').textContent = result.line2 ? '💬 LINE 訊息（第 1 則）' : '💬 LINE 訊息';
 
     if (result.email) {
       document.getElementById('outSubject').textContent = result.subject || '';
@@ -2288,6 +2314,8 @@ document.addEventListener('DOMContentLoaded', () => {
         ? `我是 Welly SEO 的內容編輯${v2.sg}，`
         : lineProxy;
       document.getElementById('outLine').textContent = '您好' + getGreetPunc() + '\n\n' + lineIntro + result.line;
+      // 第 2 則（審稿步驟等）：獨立訊息，不加「您好」開頭
+      if (result.line2) document.getElementById('outLine2').textContent = result.line2;
     }
     groupCard.classList.toggle('hidden', !result.groupMsg);
     if (result.groupMsg) {
@@ -2391,6 +2419,11 @@ document.addEventListener('DOMContentLoaded', () => {
   // 複製 LINE
   document.getElementById('copyLineBtn').addEventListener('click', async function() {
     await navigator.clipboard.writeText(document.getElementById('outLine').textContent);
+    this.classList.add('done'); const orig = this.textContent; this.textContent = '✅ 已複製';
+    setTimeout(() => { this.classList.remove('done'); this.textContent = orig; }, 2000);
+  });
+  document.getElementById('copyLineBtn2').addEventListener('click', async function() {
+    await navigator.clipboard.writeText(document.getElementById('outLine2').textContent);
     this.classList.add('done'); const orig = this.textContent; this.textContent = '✅ 已複製';
     setTimeout(() => { this.classList.remove('done'); this.textContent = orig; }, 2000);
   });
