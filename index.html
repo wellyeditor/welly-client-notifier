@@ -2830,6 +2830,8 @@ async function loadClientList() {
 // 啟動：先用上次快取立即可用，再背景更新
 _loadClientsCacheFromStorage();
 loadClientList();
+// 預熱權限 webapp（獨立腳本，冷啟動慢）→ 開頁先 ping，之後貼連結紅綠燈才快
+try { fetch(GAS_PERMISSION_URL, { mode: 'no-cors' }).catch(() => {}); } catch (e) {}
 // 署名或職代變更時重新拉取
 window.addEventListener('storage', (e) => {
   if (e.key === 'wellySignoff' || e.key === 'wellyCalTarget') loadClientList();
