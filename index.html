@@ -1110,18 +1110,12 @@ async function fetchPageTitle(idx, url) {
   if (!titleEl) return;
   if (/docs\.google\.com|drive\.google\.com/.test(url)) return;
   titleEl.placeholder = '抓取標題中...';
-  try {
-    const gasUrl = GAS_LOGGER_URL + '?action=fetchTitle&url=' + encodeURIComponent(url);
-    const res = await fetch(gasUrl);
-    if (res.ok) {
-      const data = await res.json();
-      if (data.ok && data.title) {
-        titleEl.value = data.title;
-        titleEl.style.borderColor = '#86efac';
-        return;
-      }
-    }
-  } catch(e) {}
+  const data = await _gasGetJson(GAS_LOGGER_URL + '?action=fetchTitle&url=' + encodeURIComponent(url), 12000);
+  if (data && data.ok && data.title) {
+    titleEl.value = data.title;
+    titleEl.style.borderColor = '#86efac';
+    return;
+  }
   titleEl.placeholder = '無法自動抓取，請手動輸入標題';
 }
 
@@ -2518,15 +2512,33 @@ function extractGoogleId(url) {
   return null;
 }
 
+// 共用：GAS GET → JSON，冷啟動(404/HTML/逾時)自動退避重試；真正拿到 JSON 才回傳
+async function _gasGetJson(url, timeoutMs) {
+  const backoff = [500, 1500, 3000];
+  for (let i = 0; i < backoff.length + 1; i++) {
+    try {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), timeoutMs || 12000);
+      const res = await fetch(url, { signal: controller.signal, redirect: 'follow' });
+      clearTimeout(timer);
+      if (res.ok) {
+        const txt = await res.text();
+        try { return JSON.parse(txt); } catch (e) { /* 冷啟動回 HTML → 重試 */ }
+      }
+    } catch (e) { /* 逾時/網路 → 重試 */ }
+    if (i < backoff.length) await new Promise(r => setTimeout(r, backoff[i]));
+  }
+  return null;
+}
+
 // GAS API 檢查（檔案 + 資料夾都適用）
 async function checkViaGAS(fileId, dot, requireEdit) {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 12000);
-  const res = await fetch(`${GAS_PERMISSION_URL}?id=${fileId}`, {
-    signal: controller.signal, redirect: 'follow'
-  });
-  clearTimeout(timer);
-  const data = await res.json();
+  const data = await _gasGetJson(`${GAS_PERMISSION_URL}?id=${fileId}`, 12000);
+  if (!data) {
+    dot.className = 'link-status fail';
+    dot.title = '✗ 權限服務忙碌，請稍候再點一下連結欄重試，或自行確認權限';
+    return '';
+  }
 
   if (!data.ok) {
     dot.className = 'link-status fail';
