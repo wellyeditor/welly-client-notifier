@@ -1330,13 +1330,16 @@ function gen(id) {
   const leaveFrom = localStorage.getItem('wellyLeaveFrom') || '';
   const leaveTo = localStorage.getItem('wellyLeaveTo') || '';
   let proxyIntro = '';
-  if (calTarget && leaveFrom && leaveTo) {
+  if (calTarget) {
     const fmtLeave = (d) => { const p = d.split('-'); return `${parseInt(p[1])}/${parseInt(p[2])}`; };
-    proxyIntro = `我是內容編輯${v.sg}，${calTarget} ${fmtLeave(leaveFrom)}～${fmtLeave(leaveTo)} 休假，所以這段期間由我代為回覆～\n\n`;
+    proxyIntro = (leaveFrom && leaveTo)
+      ? `我是內容編輯${v.sg}，${calTarget} ${fmtLeave(leaveFrom)}～${fmtLeave(leaveTo)} 休假，所以這段期間由我代為回覆～\n\n`
+      : `我是內容編輯${v.sg}，${calTarget} 休假期間由我代為回覆～\n\n`;
   }
-  const selfIntro = v.isFirstSend
-    ? `\n\n我是 Welly SEO 的內容編輯${v.sg}，`
-    : (proxyIntro ? `\n\n${proxyIntro}` : '\n\n');
+  // 職代優先於「首次自我介紹」（職代模式下，就算勾首次也要出職代文字）
+  const selfIntro = proxyIntro
+    ? `\n\n${proxyIntro}`
+    : (v.isFirstSend ? `\n\n我是 Welly SEO 的內容編輯${v.sg}，` : '\n\n');
 
   // 關鍵字拆分 → 用於文章名稱 & 格式化顯示
   const kwParts = v.kw.split(/[、，,]+/).map(s => s.trim()).filter(Boolean);
@@ -2337,13 +2340,16 @@ document.addEventListener('DOMContentLoaded', () => {
       const lf2 = localStorage.getItem('wellyLeaveFrom') || '';
       const lt2 = localStorage.getItem('wellyLeaveTo') || '';
       let lineProxy = '';
-      if (ct2 && lf2 && lt2) {
+      if (ct2) {
         const fmtL = (d) => { const p = d.split('-'); return `${parseInt(p[1])}/${parseInt(p[2])}`; };
-        lineProxy = `我是內容編輯${v2.sg}，${ct2} ${fmtL(lf2)}～${fmtL(lt2)} 休假，所以這段期間由我代為回覆～\n\n`;
+        lineProxy = (lf2 && lt2)
+          ? `我是內容編輯${v2.sg}，${ct2} ${fmtL(lf2)}～${fmtL(lt2)} 休假，所以這段期間由我代為回覆～\n\n`
+          : `我是內容編輯${v2.sg}，${ct2} 休假期間由我代為回覆～\n\n`;
       }
-      const lineIntro = document.getElementById('ct_firstSend').checked
-        ? `我是 Welly SEO 的內容編輯${v2.sg}，`
-        : lineProxy;
+      // 職代優先於「首次自我介紹」
+      const lineIntro = lineProxy
+        ? lineProxy
+        : (document.getElementById('ct_firstSend').checked ? `我是 Welly SEO 的內容編輯${v2.sg}，` : '');
       document.getElementById('outLine').textContent = '您好' + getGreetPunc() + '\n\n' + lineIntro + result.line;
       // 第 2 則（審稿步驟等）：獨立訊息，不加「您好」開頭
       if (result.line2) document.getElementById('outLine2').textContent = result.line2;
@@ -2803,24 +2809,25 @@ async function loadClientList() {
 
   const operator = localStorage.getItem('wellySignoff') || '';
   const calTarget = localStorage.getItem('wellyCalTarget') || '';
+  const isDeputy = calTarget && calTarget !== operator;
 
-  // 自己的客戶（獨立處理，失敗不影響職代）
+  // 自己的 + 職代的客戶「並行」抓取（職代模式下速度減半）
+  const [data, data2] = await Promise.all([
+    _fetchClientList(operator),
+    isDeputy ? _fetchClientList(calTarget) : Promise.resolve(null)
+  ]);
+
   let myClients = [];
-  const data = await _fetchClientList(operator);
   if (data && data.clients) myClients = data.clients.map(c => Object.assign({}, c, { owner: '' }));
 
-  // 職代模式：另外拉原負責人的客戶（獨立 try，第一個失敗也照跑）
   let deputyClients = [];
   window._deputyEmail = '';
-  if (calTarget && calTarget !== operator) {
-    const data2 = await _fetchClientList(calTarget);
-    if (data2 && data2.clients) {
-      const myNames = new Set(myClients.map(c => c.name));
-      deputyClients = data2.clients
-        .filter(c => !myNames.has(c.name))
-        .map(c => Object.assign({}, c, { owner: calTarget }));
-      if (data2.operatorEmail) window._deputyEmail = data2.operatorEmail;
-    }
+  if (isDeputy && data2 && data2.clients) {
+    const myNames = new Set(myClients.map(c => c.name));
+    deputyClients = data2.clients
+      .filter(c => !myNames.has(c.name))
+      .map(c => Object.assign({}, c, { owner: calTarget }));
+    if (data2.operatorEmail) window._deputyEmail = data2.operatorEmail;
   }
 
   // 只有成功拿到資料才覆蓋，避免暫時性失敗把整份名單清空
