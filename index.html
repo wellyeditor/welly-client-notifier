@@ -606,7 +606,7 @@
           <label><input type="checkbox" id="ct_arch"> 架構</label>
           <label><input type="checkbox" id="ct_article"> 文章</label>
           <label><input type="checkbox" id="ct_product"> 產品頁</label>
-          <label><input type="checkbox" id="ct_optimize"> 優化既有文章頁</label>
+          <label><input type="checkbox" id="ct_optimize"> 優化既有頁面</label>
         </div>
       </div>
       <div class="field span2 hidden" id="wrap_firstSend">
@@ -932,12 +932,12 @@ function getContentDesc() {
   if (a) parts.push('文章架構');
   if (t) parts.push('文章');
   if (p) parts.push('產品頁');
-  if (o) parts.push('優化既有文章頁');
+  if (o) parts.push('優化既有頁面');
   return parts.join('、');
 }
 
 // ─── 動態連結管理 ──────────────────────────────────────────────────
-const TYPE_LABELS = { arch: '文章架構', article: '文章', product: '產品頁', optimize: '優化既有文章頁' };
+const TYPE_LABELS = { arch: '文章架構', article: '文章', product: '產品頁', optimize: '優化既有頁面' };
 
 // 取得目前勾選的內容類型 key 陣列
 function getCheckedTypes() {
@@ -1380,7 +1380,7 @@ function gen(id) {
   // 產品頁 / 優化既有文章頁附加說明
   const specialPages = [];
   if (v.hasProduct) specialPages.push('產品頁');
-  if (v.hasOptimize) specialPages.push('優化既有文章頁');
+  if (v.hasOptimize) specialPages.push('優化既有頁面');
   const productNote = specialPages.length ? `\n（${specialPages.join('、')}此階段審核通過後，將會是上架至貴公司官網的版本。）` : '';
   // 文章 / 優化既有文章頁 → 圖片後補備註
   const imgLaterNote = (v.hasArticle || v.hasOptimize) ? '\n\n備註：為加速文章產出，目前先請您協助確認文字，圖片後續補上後，會再給您確認一次圖片內容。' : '';
@@ -2707,7 +2707,8 @@ function autoFillFromDocName(name, linkRow) {
   if (countEl && parseInt(countEl.value) < newCount) countEl.value = String(newCount);
 
   // 自動勾選內容類型 checkbox
-  const typeId = detectContentType(suffix);
+  // 標題只要含「優化」→ 一律判為優化既有頁面（不受後綴格式影響，也不會誤勾成文章）
+  const typeId = /優化/.test(name) ? 'optimize' : detectContentType(suffix);
   const typeCheckboxMap = { arch: 'ct_arch', article: 'ct_article', product: 'ct_product', optimize: 'ct_optimize' };
   const typeCb = document.getElementById(typeCheckboxMap[typeId]);
   if (typeCb && !typeCb.checked) typeCb.checked = true;
